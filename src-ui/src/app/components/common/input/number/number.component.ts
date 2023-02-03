@@ -1,6 +1,6 @@
 import { Component, forwardRef, Input } from '@angular/core'
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
-import { FILTER_ASN_ISNULL } from 'src/app/data/filter-rule-type'
+import { FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
 import { DocumentService } from 'src/app/services/rest/document.service'
 import { AbstractInputComponent } from '../abstract-input'
 
@@ -19,6 +19,8 @@ import { AbstractInputComponent } from '../abstract-input'
 export class NumberComponent extends AbstractInputComponent<number> {
   @Input()
   showAdd: boolean = true
+  @Input()
+  documentType: number
 
   constructor(private documentService: DocumentService) {
     super()
@@ -31,6 +33,7 @@ export class NumberComponent extends AbstractInputComponent<number> {
     this.documentService
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
+        { rule_type: FILTER_DOCUMENT_TYPE, value: this.documentType.toString()}
       ])
       .subscribe((results) => {
         if (results.count > 0) {
