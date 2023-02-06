@@ -85,6 +85,12 @@ class Tag(MatchingModel):
 
 
 class DocumentType(MatchingModel):
+    prefix = models.CharField(
+        _("prefix"),
+        blank=True,
+        null=True,
+        max_length=10,
+    )
     class Meta:
         verbose_name = _("document type")
         verbose_name_plural = _("document types")
@@ -233,7 +239,7 @@ class Document(models.Model):
         _("archive serial number"),
         blank=True,
         null=True,
-        unique=True,
+        unique=False,
         db_index=True,
         validators=[
             MaxValueValidator(0xFF_FF_FF_FF),

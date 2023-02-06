@@ -103,6 +103,7 @@ class DocumentTypeSerializer(MatchingModelSerializer):
             "matching_algorithm",
             "is_insensitive",
             "document_count",
+            "prefix"
         )
 
 
