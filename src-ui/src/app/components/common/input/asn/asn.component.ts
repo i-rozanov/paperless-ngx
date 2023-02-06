@@ -11,15 +11,15 @@ import { AbstractInputComponent } from '../abstract-input'
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => NumberComponent),
+      useExisting: forwardRef(() => AsnComponent),
       multi: true,
     },
   ],
-  selector: 'app-input-number',
-  templateUrl: './number.component.html',
-  styleUrls: ['./number.component.scss'],
+  selector: 'app-input-asn',
+  templateUrl: './asn.component.html',
+  styleUrls: ['./asn.component.scss'],
 })
-export class NumberComponent extends AbstractInputComponent<number> {
+export class AsnComponent extends AbstractInputComponent<number> {
 
   @Input()
   showAdd: boolean = true
@@ -33,9 +33,6 @@ export class NumberComponent extends AbstractInputComponent<number> {
   constructor(private documentService: DocumentService) {
     super()
   }
-  // ngAfterViewChecked(){
-  //   this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'
-  // }
 
   nextAsn() {
     console.log(this.dTypes)
@@ -43,6 +40,9 @@ export class NumberComponent extends AbstractInputComponent<number> {
     console.log(this.prefix)
     const [year] = this.document.added.toString().split('-');
     let shortYear : number = Number(year) - 2000
+    console.log(year)
+    console.log(shortYear)
+
     if (this.value) {
       return
     }
@@ -50,12 +50,14 @@ export class NumberComponent extends AbstractInputComponent<number> {
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
         { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()}
+        // ДОБАВИТЬ ФИЛЬТР id != текущему
+        // ДОБАВИТЬ ФИЛЬТР дата > начало года
       ])
       .subscribe((results) => {
         if (results.count > 0) {
           console.log(results.results[0].archive_serial_number)
           console.log((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear)
-          this.value = results.results[0].archive_serial_number + 1
+          this.value = (Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear //TODO: ИСПРАВИТЬ СЛУЧАЙ С ПЕРЕХОДОМ ГОДА!
         } else {
           this.value = 100 + shortYear
         }

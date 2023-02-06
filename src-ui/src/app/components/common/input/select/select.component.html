@@ -13,7 +13,7 @@
         [placeholder]="placeholder"
         bindLabel="name"
         bindValue="id"
-        (change)="onChange(value)"
+        (change)="onChange(value); setPrefix(value, formControlName)"
         (search)="onSearch($event)"
         (focus)="clearLastSearchTerm()"
         (clear)="clearLastSearchTerm()"

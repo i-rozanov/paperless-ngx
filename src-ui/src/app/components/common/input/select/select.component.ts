@@ -44,8 +44,14 @@ export class SelectComponent extends AbstractInputComponent<number> {
   @Input()
   placeholder: string
 
+  @Input()
+  formControlName: string
+
   @Output()
   createNew = new EventEmitter<string>()
+
+  @Output()
+  prefixId: number
 
   public addItemRef: (name) => void
 
@@ -88,5 +94,12 @@ export class SelectComponent extends AbstractInputComponent<number> {
     setTimeout(() => {
       this.clearLastSearchTerm()
     }, 3000)
+  }
+
+  setPrefix(value : number , inputId : string){
+    if (inputId == 'document_type'){
+      this.prefixId = value
+    }
+
   }
 }

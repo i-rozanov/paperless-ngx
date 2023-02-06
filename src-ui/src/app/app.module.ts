@@ -79,6 +79,8 @@ import { TasksComponent } from './components/manage/tasks/tasks.component'
 import { TourNgBootstrapModule } from 'ngx-ui-tour-ng-bootstrap'
 import { MailAccountEditDialogComponent } from './components/common/edit-dialog/mail-account-edit-dialog/mail-account-edit-dialog.component'
 import { MailRuleEditDialogComponent } from './components/common/edit-dialog/mail-rule-edit-dialog/mail-rule-edit-dialog.component'
+import { NgxMaskDirective, NgxMaskPipe, provideNgxMask } from 'ngx-mask'
+import { AsnComponent } from './components/common/input/asn/asn.component'
 
 import localeAr from '@angular/common/locales/ar'
 import localeBe from '@angular/common/locales/be'
@@ -178,6 +180,7 @@ function initializeApp(settings: SettingsService) {
     MetadataCollapseComponent,
     SelectDialogComponent,
     NumberComponent,
+    AsnComponent,
     SafeUrlPipe,
     SafeHtmlPipe,
     CustomDatePipe,
@@ -201,6 +204,8 @@ function initializeApp(settings: SettingsService) {
     NgSelectModule,
     ColorSliderModule,
     TourNgBootstrapModule,
+    NgxMaskDirective,
+    NgxMaskPipe,
   ],
   providers: [
     {
@@ -209,6 +214,7 @@ function initializeApp(settings: SettingsService) {
       deps: [SettingsService],
       multi: true,
     },
+    provideNgxMask(),
     DatePipe,
     CookieService,
     {
