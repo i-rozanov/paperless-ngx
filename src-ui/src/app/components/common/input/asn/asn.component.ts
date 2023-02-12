@@ -19,7 +19,7 @@ import { AbstractInputComponent } from '../abstract-input'
   templateUrl: './asn.component.html',
   styleUrls: ['./asn.component.scss'],
 })
-export class AsnComponent extends AbstractInputComponent<string> implements AfterContentInit{
+export class AsnComponent extends AbstractInputComponent<string> {
 
   @Input()
   document: PaperlessDocument
@@ -34,29 +34,13 @@ export class AsnComponent extends AbstractInputComponent<string> implements Afte
 
   zeroPad = (num, places) => String(num).padStart(places, '0')
   updateTextAsn(updatedValue){
-    console.log('updateTextAsn called!')
     this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
-    // let asn = this.zeroPad(this.document.archive_serial_number,5)
-    // let asn = this.document.archive_serial_number;
-    // console.log(updatedValue)
-    // let asn = this.zeroPad(updatedValue,5)
-    // console.log(asn)
     this.value = updatedValue;
-    // this.document.archive_serial_number = Number(updatedValue)
   }
   saveAsnToDocument(){
-    console.log('focus out CALLED')
     this.value = this.zeroPad(this.document.archive_serial_number,5)
   }
 
-  ngAfterContentInit(): void {
-    console.log('init called!')
-    // setTimeout(() => {
-    //   this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
-    //   this.value = this.zeroPad(this.document.archive_serial_number,5)
-    // }, 250);
-
-  }
   nextAsn() {
     console.log(this.dTypes)
     this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'

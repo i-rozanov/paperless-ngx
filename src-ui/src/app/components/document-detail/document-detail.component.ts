@@ -55,13 +55,13 @@ export class DocumentDetailComponent
   error: any
 
   networkActive = false
-
+  showAsn = false
   documentId: number
   document: PaperlessDocument
   metadata: PaperlessDocumentMetadata
   suggestions: PaperlessDocumentSuggestions
 
-  prefix: string
+  // prefix: string
   title: string
   titleSubject: Subject<string> = new Subject()
   previewUrl: string
@@ -154,8 +154,13 @@ export class DocumentDetailComponent
       .subscribe(() => {
         this.error = null
         Object.assign(this.document, this.documentForm.value)
-        setTimeout(() =>this.child.updateTextAsn(this.document.archive_serial_number),1);
-        setTimeout(() =>this.child.value = this.zeroPad(this.document.archive_serial_number,5),1);
+        setTimeout(() => this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length >= 0,1);
+        setTimeout(() =>this.child?.updateTextAsn(this.document.archive_serial_number),1);
+        setTimeout(() => {
+          if (this.child){
+            this.child.value = this.zeroPad(this.document.archive_serial_number,5)
+          }
+        },1);
       })
 
     this.correspondentService
