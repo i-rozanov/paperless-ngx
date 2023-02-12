@@ -154,7 +154,7 @@ export class DocumentDetailComponent
       .subscribe(() => {
         this.error = null
         Object.assign(this.document, this.documentForm.value)
-        setTimeout(() => this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length >= 0,1);
+        setTimeout(() => this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length > 0,1);
         setTimeout(() =>this.child?.updateTextAsn(this.document.archive_serial_number),1);
         setTimeout(() => {
           if (this.child){
@@ -181,6 +181,9 @@ export class DocumentDetailComponent
       this.documentForm.get('document_type').valueChanges.pipe(pairwise())//.pipe(takeUntil(this.unsubscribeNotifier))
       .subscribe(([prev, next]: [any, any]) => {
         setTimeout(() =>this.child.updateTextAsn(this.document.archive_serial_number),1);
+        setTimeout(() => {
+          this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length > 0,1
+        });
       })
 
     this.route.paramMap
