@@ -1,7 +1,7 @@
-import { Component, forwardRef, Input } from '@angular/core'
+import { AfterContentInit, AfterViewInit, Component, forwardRef, Input, OnInit } from '@angular/core'
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
 import { any } from 'cypress/types/bluebird'
-import { FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
+import { FILTER_ADDED_AFTER, FILTER_ADDED_BEFORE, FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
 import { PaperlessDocument } from 'src/app/data/paperless-document'
 import { PaperlessDocumentType } from 'src/app/data/paperless-document-type'
 import { DocumentService } from 'src/app/services/rest/document.service'
@@ -19,21 +19,44 @@ import { AbstractInputComponent } from '../abstract-input'
   templateUrl: './asn.component.html',
   styleUrls: ['./asn.component.scss'],
 })
-export class AsnComponent extends AbstractInputComponent<number> {
+export class AsnComponent extends AbstractInputComponent<string> implements AfterContentInit{
 
-  @Input()
-  showAdd: boolean = true
   @Input()
   document: PaperlessDocument
   @Input()
   dTypes: PaperlessDocumentType[]
-  @Input()
+
   prefix: string
 
   constructor(private documentService: DocumentService) {
     super()
   }
 
+  zeroPad = (num, places) => String(num).padStart(places, '0')
+  updateTextAsn(updatedValue){
+    console.log('updateTextAsn called!')
+    this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
+    // let asn = this.zeroPad(this.document.archive_serial_number,5)
+    // let asn = this.document.archive_serial_number;
+    // console.log(updatedValue)
+    // let asn = this.zeroPad(updatedValue,5)
+    // console.log(asn)
+    this.value = updatedValue;
+    // this.document.archive_serial_number = Number(updatedValue)
+  }
+  saveAsnToDocument(){
+    console.log('focus out CALLED')
+    this.value = this.zeroPad(this.document.archive_serial_number,5)
+  }
+
+  ngAfterContentInit(): void {
+    console.log('init called!')
+    // setTimeout(() => {
+    //   this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
+    //   this.value = this.zeroPad(this.document.archive_serial_number,5)
+    // }, 250);
+
+  }
   nextAsn() {
     console.log(this.dTypes)
     this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'
@@ -50,6 +73,8 @@ export class AsnComponent extends AbstractInputComponent<number> {
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
         { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()}
+        // { rule_type: FILTER_ADDED_AFTER, value: this.document}
+        // { rule_type: FILTER_ASN_GT, value: this.document}
         // ДОБАВИТЬ ФИЛЬТР id != текущему
         // ДОБАВИТЬ ФИЛЬТР дата > начало года
       ])
@@ -57,9 +82,9 @@ export class AsnComponent extends AbstractInputComponent<number> {
         if (results.count > 0) {
           console.log(results.results[0].archive_serial_number)
           console.log((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear)
-          this.value = (Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear //TODO: ИСПРАВИТЬ СЛУЧАЙ С ПЕРЕХОДОМ ГОДА!
+          this.value = String((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear) //TODO: ИСПРАВИТЬ СЛУЧАЙ С ПЕРЕХОДОМ ГОДА!
         } else {
-          this.value = 100 + shortYear
+          this.value = String(100 + shortYear)
         }
         this.onChange(this.value)
       })

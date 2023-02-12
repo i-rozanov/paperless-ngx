@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core'
+import { Component, OnInit, OnDestroy, ViewChild, AfterContentChecked, AfterContentInit } from '@angular/core'
 import { FormControl, FormGroup } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { NgbModal, NgbNav } from '@ng-bootstrap/ng-bootstrap'
@@ -28,6 +28,7 @@ import {
   map,
   debounceTime,
   distinctUntilChanged,
+  pairwise,
 } from 'rxjs/operators'
 import { PaperlessDocumentSuggestions } from 'src/app/data/paperless-document-suggestions'
 import { FILTER_FULLTEXT_MORELIKE } from 'src/app/data/filter-rule-type'
@@ -35,6 +36,7 @@ import { StoragePathService } from 'src/app/services/rest/storage-path.service'
 import { PaperlessStoragePath } from 'src/app/data/paperless-storage-path'
 import { StoragePathEditDialogComponent } from '../common/edit-dialog/storage-path-edit-dialog/storage-path-edit-dialog.component'
 import { SETTINGS_KEYS } from 'src/app/data/paperless-uisettings'
+import { AsnComponent } from '../common/input/asn/asn.component'
 
 @Component({
   selector: 'app-document-detail',
@@ -59,6 +61,7 @@ export class DocumentDetailComponent
   metadata: PaperlessDocumentMetadata
   suggestions: PaperlessDocumentSuggestions
 
+  prefix: string
   title: string
   titleSubject: Subject<string> = new Subject()
   previewUrl: string
@@ -94,6 +97,7 @@ export class DocumentDetailComponent
   ogDate: Date
 
   @ViewChild('nav') nav: NgbNav
+  @ViewChild(AsnComponent) child:AsnComponent
   @ViewChild('pdfPreview') set pdfPreview(element) {
     // this gets called when compontent added or removed from DOM
     if (
@@ -142,12 +146,16 @@ export class DocumentDetailComponent
     }
   }
 
+  zeroPad = (num, places) => String(num).padStart(places, '0')
+
   ngOnInit(): void {
     this.documentForm.valueChanges
       .pipe(takeUntil(this.unsubscribeNotifier))
       .subscribe(() => {
         this.error = null
         Object.assign(this.document, this.documentForm.value)
+        setTimeout(() =>this.child.updateTextAsn(this.document.archive_serial_number),1);
+        setTimeout(() =>this.child.value = this.zeroPad(this.document.archive_serial_number,5),1);
       })
 
     this.correspondentService
@@ -164,6 +172,11 @@ export class DocumentDetailComponent
       .listAll()
       .pipe(first())
       .subscribe((result) => (this.storagePaths = result.results))
+
+      this.documentForm.get('document_type').valueChanges.pipe(pairwise())//.pipe(takeUntil(this.unsubscribeNotifier))
+      .subscribe(([prev, next]: [any, any]) => {
+        setTimeout(() =>this.child.updateTextAsn(this.document.archive_serial_number),1);
+      })
 
     this.route.paramMap
       .pipe(
