@@ -202,7 +202,7 @@ class DocumentViewSet(
     GenericViewSet,
 ):
     model = Document
-    queryset = Document.objects.all()
+    queryset = Document.objects.all().select_related("document_type")
     serializer_class = DocumentSerializer
     pagination_class = StandardPagination
     permission_classes = (IsAuthenticated,)

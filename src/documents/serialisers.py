@@ -224,6 +224,7 @@ class DocumentSerializer(DynamicFieldsModelSerializer):
 
     original_file_name = SerializerMethodField()
     archived_file_name = SerializerMethodField()
+    asn_string = SerializerMethodField()
     created_date = serializers.DateField(required=False)
 
     def get_original_file_name(self, obj):
@@ -234,6 +235,11 @@ class DocumentSerializer(DynamicFieldsModelSerializer):
             return obj.get_public_filename(archive=True)
         else:
             return None
+
+    def get_asn_string(self, obj):
+        without_slash = str(obj.document_type.prefix) + str(obj.archive_serial_number).zfill(5)
+        return  without_slash[:-2] + '/' + without_slash[-2:]
+
 
     def to_representation(self, instance):
         doc = super().to_representation(instance)
@@ -277,6 +283,7 @@ class DocumentSerializer(DynamicFieldsModelSerializer):
             "archive_serial_number",
             "original_file_name",
             "archived_file_name",
+            "asn_string"
         )
 
 
