@@ -201,7 +201,7 @@ class Document(models.Model):
     added = models.DateTimeField(
         _("added"),
         default=timezone.now,
-        editable=False,
+        editable=True,
         db_index=True,
     )
 
