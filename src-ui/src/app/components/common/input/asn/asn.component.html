@@ -14,7 +14,7 @@
       [class.is-invalid]="error"
       [showMaskTyped]="true"
     >
-    <button class="btn btn-outline-secondary" type="button" id="button-addon1" (click)="nextAsn()" [disabled]="value">+1</button>
+    <button class="btn btn-outline-secondary" type="button" id="button-addon1" (click)="nextAsn()" [disabled]="!showPlusOne">+1</button>
   </div>
   <div class="invalid-feedback">
     {{error}}

@@ -54,5 +54,7 @@ export interface PaperlessDocument extends ObjectWithId {
 
   archive_serial_number?: number
 
+  asn_string?: string
+
   __search_hit__?: SearchHit
 }

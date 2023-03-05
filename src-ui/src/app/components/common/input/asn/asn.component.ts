@@ -1,6 +1,7 @@
 import { AfterContentInit, AfterViewInit, Component, forwardRef, Input, OnInit } from '@angular/core'
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
-import { any } from 'cypress/types/bluebird'
+// import { throws } from 'assert'
+// import { any } from 'cypress/types/bluebird'
 import { FILTER_ADDED_AFTER, FILTER_ADDED_BEFORE, FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
 import { PaperlessDocument } from 'src/app/data/paperless-document'
 import { PaperlessDocumentType } from 'src/app/data/paperless-document-type'
@@ -27,6 +28,7 @@ export class AsnComponent extends AbstractInputComponent<string> {
   dTypes: PaperlessDocumentType[]
 
   prefix: string
+  showPlusOne: boolean = false
 
   constructor(private documentService: DocumentService) {
     super()
@@ -34,25 +36,42 @@ export class AsnComponent extends AbstractInputComponent<string> {
 
   zeroPad = (num, places) => String(num).padStart(places, '0')
   updateTextAsn(updatedValue){
-    this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
-    this.value = updatedValue;
+    if (updatedValue){
+      this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
+      this.value = updatedValue;
+      this.showPlusOne = false;
+    }
+    else{
+      this.showPlusOne = true;
+    }
   }
   saveAsnToDocument(){
-    this.value = this.zeroPad(this.document.archive_serial_number,5)
+    console.log('saving: ' + this.document.archive_serial_number.toString())
+    console.log(this.value)
+    if (this.document.archive_serial_number > 1){
+      console.log('gggg')
+      this.value = this.zeroPad(this.document.archive_serial_number,5)
+    }
+    else {
+      this.value = null;
+      this.showPlusOne = true;
+      this.document.archive_serial_number = null;
+    }
   }
 
   nextAsn() {
-    console.log(this.dTypes)
-    this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'
-    console.log(this.prefix)
+    console.log('lllllllllllllllllllllll')
+    // console.log(this.dTypes)
+    // this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'
+    // console.log(this.prefix)
     const [year] = this.document.added.toString().split('-');
     let shortYear : number = Number(year) - 2000
     console.log(year)
     console.log(shortYear)
-
-    if (this.value) {
-      return
-    }
+    // console.log(this.value)
+    // if (this.value) {
+    //   return
+    // }
     this.documentService
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
