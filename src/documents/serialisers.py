@@ -237,8 +237,10 @@ class DocumentSerializer(DynamicFieldsModelSerializer):
             return None
 
     def get_asn_string(self, obj):
-        without_slash = str(obj.document_type.prefix) + str(obj.archive_serial_number).zfill(5)
-        return  without_slash[:-2] + '/' + without_slash[-2:]
+        if obj.document_type:
+            without_slash = str(obj.document_type.prefix) + str(obj.archive_serial_number).zfill(5)
+            return  without_slash[:-2] + '/' + without_slash[-2:]
+        return None
 
 
     def to_representation(self, instance):
