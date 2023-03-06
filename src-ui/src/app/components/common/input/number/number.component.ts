@@ -1,6 +1,5 @@
 import { Component, forwardRef, Input } from '@angular/core'
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
-import { any } from 'cypress/types/bluebird'
 import { FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
 import { PaperlessDocument } from 'src/app/data/paperless-document'
 import { PaperlessDocumentType } from 'src/app/data/paperless-document-type'
@@ -33,9 +32,6 @@ export class NumberComponent extends AbstractInputComponent<number> {
   constructor(private documentService: DocumentService) {
     super()
   }
-  // ngAfterViewChecked(){
-  //   this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'
-  // }
 
   nextAsn() {
     console.log(this.dTypes)
