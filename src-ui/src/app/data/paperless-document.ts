@@ -46,6 +46,9 @@ export interface PaperlessDocument extends ObjectWithId {
 
   added?: Date
 
+// localized date
+  added_date?: Date
+
   original_file_name?: string
 
   download_url?: string

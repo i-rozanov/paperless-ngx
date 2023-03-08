@@ -339,6 +339,10 @@ class Document(models.Model):
     def created_date(self):
         return timezone.localdate(self.created)
 
+    @property
+    def added_date(self):
+        return timezone.localdate(self.added)
+
 
 class Log(models.Model):
 

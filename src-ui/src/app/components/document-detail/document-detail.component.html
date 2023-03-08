@@ -88,6 +88,8 @@
                         </div>
                         <app-input-date i18n-title title="Date created" formControlName="created_date" [suggestions]="suggestions?.dates"
                             [error]="error?.created_date"></app-input-date>
+                        <app-input-date i18n-title title="Date added" formControlName="added_date" [suggestions]="suggestions?.dates"
+                            [error]="error?.added_date"></app-input-date>
                         <app-input-select [items]="correspondents" i18n-title title="Correspondent" formControlName="correspondent" [allowNull]="true"
                             (createNew)="createCorrespondent($event)" [suggestions]="suggestions?.correspondents"></app-input-select>
                         <app-input-select [items]="storagePaths" i18n-title title="Storage path" formControlName="storage_path" [allowNull]="true"

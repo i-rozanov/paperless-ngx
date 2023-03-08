@@ -96,3 +96,4 @@ scripts/nuke
 
 # celery schedule file
 celerybeat-schedule*
+paperless-ngx.tar
