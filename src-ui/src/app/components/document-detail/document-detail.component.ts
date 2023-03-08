@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, AfterContentChecked, AfterContentInit } from '@angular/core'
+import { Component, OnInit, OnDestroy, ViewChild, AfterContentChecked, AfterContentInit, AfterViewInit, AfterViewChecked, OnChanges, SimpleChanges } from '@angular/core'
 import { FormControl, FormGroup } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { NgbModal, NgbNav } from '@ng-bootstrap/ng-bootstrap'
@@ -61,7 +61,9 @@ export class DocumentDetailComponent
   metadata: PaperlessDocumentMetadata
   suggestions: PaperlessDocumentSuggestions
 
-  // prefix: string
+  prefix: string
+  init_value: string
+  showPlusOne: boolean
   title: string
   titleSubject: Subject<string> = new Subject()
   previewUrl: string
@@ -154,13 +156,31 @@ export class DocumentDetailComponent
       .subscribe(() => {
         this.error = null
         Object.assign(this.document, this.documentForm.value)
-        setTimeout(() => this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length > 0,100);
-        setTimeout(() =>this.child?.updateTextAsn(this.document.archive_serial_number),200);
-        setTimeout(() => {
+        // console.log('updated!')
+        this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length > 0;
+        this.prefix = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix;
+        if (this.init_value==null){ // Первая инициализация
+          // console.log('set value')
+          if (this.document.archive_serial_number){
+            this.init_value = this.zeroPad(this.document.archive_serial_number,5);
+            this.documentForm.controls['archive_serial_number'].setValue(this.init_value,{ emitEvent: false })
+            this.showPlusOne = false;
+          }
+          else {
+            this.documentForm.controls['archive_serial_number'].setValue('',{ emitEvent: false })
+            this.showPlusOne = true;
+          }
+        }
+        else { // последующие инициализации
           if (this.child){
             this.child.value = this.zeroPad(this.document.archive_serial_number,5)
+            this.showPlusOne = false;
           }
-        },300);
+        }
+        if ((this.child) && (this.child.value == '00000' || this.child.value == '0')){
+          // this.documentForm.controls['archive_serial_number'].setValue('',{ emitEvent: false })
+          this.showPlusOne = true;
+        }
       })
 
     this.correspondentService
@@ -177,14 +197,6 @@ export class DocumentDetailComponent
       .listAll()
       .pipe(first())
       .subscribe((result) => (this.storagePaths = result.results))
-
-      this.documentForm.get('document_type').valueChanges.pipe(pairwise())//.pipe(takeUntil(this.unsubscribeNotifier))
-      .subscribe(([prev, next]: [any, any]) => {
-        setTimeout(() =>this.child.updateTextAsn(this.document.archive_serial_number),1);
-        setTimeout(() => {
-          this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length > 0,1
-        });
-      })
 
     this.route.paramMap
       .pipe(
@@ -395,6 +407,7 @@ export class DocumentDetailComponent
   save() {
     this.networkActive = true
     this.store.next(this.documentForm.value)
+    if (String(this.document.archive_serial_number) == '') this.document.archive_serial_number = null
     this.documentsService
       .update(this.document)
       .pipe(first())
@@ -414,6 +427,7 @@ export class DocumentDetailComponent
   saveEditNext() {
     this.networkActive = true
     this.store.next(this.documentForm.value)
+    if (String(this.document.archive_serial_number) == '') this.document.archive_serial_number = null
     this.documentsService
       .update(this.document)
       .pipe(

@@ -23,11 +23,14 @@ import { AbstractInputComponent } from '../abstract-input'
 export class AsnComponent extends AbstractInputComponent<string> {
 
   @Input()
+  prefix: string
+  @Input()
+  init_value: string
+  @Input()
   document: PaperlessDocument
   @Input()
   dTypes: PaperlessDocumentType[]
-
-  prefix: string
+  @Input()
   showPlusOne: boolean = false
 
   constructor(private documentService: DocumentService) {
@@ -35,43 +38,10 @@ export class AsnComponent extends AbstractInputComponent<string> {
   }
 
   zeroPad = (num, places) => String(num).padStart(places, '0')
-  updateTextAsn(updatedValue){
-    if (updatedValue){
-      this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix
-      this.value = updatedValue;
-      this.showPlusOne = false;
-    }
-    else{
-      this.showPlusOne = true;
-    }
-  }
-  saveAsnToDocument(){
-    console.log('saving: ' + this.document.archive_serial_number.toString())
-    console.log(this.value)
-    if (this.document.archive_serial_number > 1){
-      console.log('gggg')
-      this.value = this.zeroPad(this.document.archive_serial_number,5)
-    }
-    else {
-      this.value = null;
-      this.showPlusOne = true;
-      this.document.archive_serial_number = null;
-    }
-  }
 
   nextAsn() {
-    console.log('lllllllllllllllllllllll')
-    // console.log(this.dTypes)
-    // this.prefix = (this.dTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType).prefix + '-'
-    // console.log(this.prefix)
     const [year] = this.document.added.toString().split('-');
     let shortYear : number = Number(year) - 2000
-    console.log(year)
-    console.log(shortYear)
-    // console.log(this.value)
-    // if (this.value) {
-    //   return
-    // }
     this.documentService
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
@@ -81,8 +51,8 @@ export class AsnComponent extends AbstractInputComponent<string> {
       ])
       .subscribe((results) => {
         if (results.count > 0) {
-          console.log(results.results[0].archive_serial_number)
-          console.log((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear)
+          // console.log(results.results[0].archive_serial_number)
+          // console.log((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear)
           this.value = String((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear) //TODO: ИСПРАВИТЬ СЛУЧАЙ С ПЕРЕХОДОМ ГОДА!
         } else {
           this.value = String(100 + shortYear)

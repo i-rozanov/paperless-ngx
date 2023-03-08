@@ -6,11 +6,8 @@
       class="form-control"
       mask="000/00"
       prefix="{{prefix}}"
-      [ngModel]="value"
-      (ngModelChange)="updateTextAsn($event)"
+      [(ngModel)]="value"
       (change)="onChange(value)"
-      (loadeddata)="saveAsnToDocument()"
-      (focusout)="saveAsnToDocument()"
       [class.is-invalid]="error"
       [showMaskTyped]="true"
     >
