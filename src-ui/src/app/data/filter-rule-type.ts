@@ -34,6 +34,7 @@ export const FILTER_MODIFIED_AFTER = 16
 export const FILTER_TITLE_CONTENT = 19
 export const FILTER_FULLTEXT_QUERY = 20
 export const FILTER_FULLTEXT_MORELIKE = 21
+export const FILTER_ID_NOT_EQUAL = 26
 
 export const FILTER_RULE_TYPES: FilterRuleType[] = [
   {
@@ -197,6 +198,12 @@ export const FILTER_RULE_TYPES: FilterRuleType[] = [
   {
     id: FILTER_FULLTEXT_MORELIKE,
     filtervar: 'more_like_id',
+    datatype: 'number',
+    multi: false,
+  },
+  {
+    id: FILTER_ID_NOT_EQUAL,
+    filtervar: 'id_not_equal',
     datatype: 'number',
     multi: false,
   },

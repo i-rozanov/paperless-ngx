@@ -1,6 +1,6 @@
 import { Component, forwardRef, Input } from '@angular/core'
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
-import { FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
+import { FILTER_ASN_ISNULL, FILTER_CREATED_AFTER, FILTER_DOCUMENT_TYPE, FILTER_ID_NOT_EQUAL } from 'src/app/data/filter-rule-type'
 import { PaperlessDocument } from 'src/app/data/paperless-document'
 import { PaperlessDocumentType } from 'src/app/data/paperless-document-type'
 import { DocumentService } from 'src/app/services/rest/document.service'
@@ -45,7 +45,9 @@ export class NumberComponent extends AbstractInputComponent<number> {
     this.documentService
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
-        { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()}
+        { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()},
+        // { rule_type: FILTER_ID_NOT_EQUAL, value: this.document?.id.toFixed()},
+        // { rule_type: FILTER_CREATED_AFTER, value: String(shortYear)+'-01-01'},
       ])
       .subscribe((results) => {
         if (results.count > 0) {

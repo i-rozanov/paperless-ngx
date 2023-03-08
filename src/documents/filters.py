@@ -78,6 +78,13 @@ class TitleContentFilter(Filter):
         else:
             return qs
 
+class IdNotEqualFilter(Filter):
+    label = "id not equal"
+    def filter(self, qs, value):
+        if value:
+            return qs.filter(~Q(id=value))
+        else:
+            return qs
 
 class DocumentFilterSet(FilterSet):
 
@@ -95,6 +102,8 @@ class DocumentFilterSet(FilterSet):
     tags__id__in = TagsFilter(in_list=True)
 
     is_in_inbox = InboxFilter()
+
+    id_not_equal = IdNotEqualFilter()
 
     title_content = TitleContentFilter()
 

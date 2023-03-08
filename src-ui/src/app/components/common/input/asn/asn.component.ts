@@ -2,7 +2,7 @@ import { AfterContentInit, AfterViewInit, Component, forwardRef, Input, OnInit }
 import { NG_VALUE_ACCESSOR } from '@angular/forms'
 // import { throws } from 'assert'
 // import { any } from 'cypress/types/bluebird'
-import { FILTER_ADDED_AFTER, FILTER_ADDED_BEFORE, FILTER_ASN_ISNULL, FILTER_DOCUMENT_TYPE } from 'src/app/data/filter-rule-type'
+import { FILTER_ADDED_AFTER, FILTER_ADDED_BEFORE, FILTER_ASN_ISNULL, FILTER_CREATED_AFTER, FILTER_DOCUMENT_TYPE, FILTER_ID_NOT_EQUAL } from 'src/app/data/filter-rule-type'
 import { PaperlessDocument } from 'src/app/data/paperless-document'
 import { PaperlessDocumentType } from 'src/app/data/paperless-document-type'
 import { DocumentService } from 'src/app/services/rest/document.service'
@@ -75,11 +75,9 @@ export class AsnComponent extends AbstractInputComponent<string> {
     this.documentService
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
-        { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()}
-        // { rule_type: FILTER_ADDED_AFTER, value: this.document}
-        // { rule_type: FILTER_ASN_GT, value: this.document}
-        // ДОБАВИТЬ ФИЛЬТР id != текущему
-        // ДОБАВИТЬ ФИЛЬТР дата > начало года
+        { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()},
+        { rule_type: FILTER_ID_NOT_EQUAL, value: this.document?.id.toFixed()},
+        { rule_type: FILTER_CREATED_AFTER, value: String(year)+"-01-01"},
       ])
       .subscribe((results) => {
         if (results.count > 0) {
