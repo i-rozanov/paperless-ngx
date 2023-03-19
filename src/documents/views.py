@@ -1,12 +1,14 @@
+import datetime
 import itertools
 import json
 import logging
 import os
 import tempfile
+import time
 import urllib
 import uuid
 import zipfile
-from datetime import datetime
+import hashlib
 from pathlib import Path
 from time import mktime
 from unicodedata import normalize
@@ -27,6 +29,7 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.translation import get_language
+from django.utils import timezone
 from django.views.decorators.cache import cache_control
 from django.views.generic import TemplateView
 from django_filters.rest_framework import DjangoFilterBackend
@@ -605,6 +608,18 @@ class BulkEditView(GenericAPIView):
             return Response({"result": result})
         except Exception as e:
             return HttpResponseBadRequest(str(e))
+
+class NewDocumentView(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        presentDate = datetime.datetime.now()
+        unix_timestamp = datetime.datetime.timestamp(presentDate)*1000
+
+        document = Document()
+        document.title = 'Новый документ'
+        document.checksum = hashlib.md5(str(unix_timestamp).encode('ASCII')).hexdigest()
+        document.save()
+
+        return Response({"result": document.id})
 
 
 class PostDocumentView(GenericAPIView):

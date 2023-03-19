@@ -25,6 +25,7 @@ import { ConsumerStatusService } from 'src/app/services/consumer-status.service'
 import { DocumentListViewService } from 'src/app/services/document-list-view.service'
 import { OpenDocumentsService } from 'src/app/services/open-documents.service'
 import {
+  DocumentService,
   DOCUMENT_SORT_FIELDS,
   DOCUMENT_SORT_FIELDS_FULLTEXT,
 } from 'src/app/services/rest/document.service'
@@ -33,13 +34,20 @@ import { ToastService } from 'src/app/services/toast.service'
 import { FilterEditorComponent } from './filter-editor/filter-editor.component'
 import { SaveViewConfigDialogComponent } from './save-view-config-dialog/save-view-config-dialog.component'
 
+export interface NewDocumentResult {
+  result?: number
+}
+
 @Component({
   selector: 'app-document-list',
   templateUrl: './document-list.component.html',
   styleUrls: ['./document-list.component.scss'],
 })
+
 export class DocumentListComponent implements OnInit, OnDestroy {
+
   constructor(
+    private documentService: DocumentService,
     public list: DocumentListViewService,
     public savedViewService: SavedViewService,
     public route: ActivatedRoute,
@@ -88,6 +96,12 @@ export class DocumentListComponent implements OnInit, OnDestroy {
       title = $localize`Documents`
     }
     return title
+  }
+  createNewDocument() {
+    this.documentService.createNewDocument().subscribe((results :NewDocumentResult) => {
+      var newId = results.result
+      this.router.navigateByUrl('/documents/'+String(newId))
+    })
   }
 
   getSortFields() {

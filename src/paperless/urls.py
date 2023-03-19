@@ -7,7 +7,7 @@ from django.urls import re_path
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import RedirectView
-from documents.views import AcknowledgeTasksView
+from documents.views import AcknowledgeTasksView, NewDocumentView
 from documents.views import BulkDownloadView
 from documents.views import BulkEditView
 from documents.views import CorrespondentViewSet
@@ -66,6 +66,11 @@ urlpatterns = [
                 re_path(
                     r"^documents/post_document/",
                     PostDocumentView.as_view(),
+                    name="post_document",
+                ),
+                re_path(
+                    r"^documents/new_document/",
+                    NewDocumentView.as_view(),
                     name="post_document",
                 ),
                 re_path(

@@ -1,5 +1,12 @@
 <app-page-header [title]="getTitle()">
-
+  <div ngbDropdown class="btn-group me-2 flex-fill">
+    <button class="btn btn-sm btn-outline-primary" id="createNewDocument" (click)="createNewDocument()">
+      <svg class="toolbaricon" fill="currentColor">
+        <use xlink:href="assets/bootstrap-icons.svg#sticky" />
+      </svg>
+      <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Создать</ng-container></div>
+    </button>
+  </div>
   <div ngbDropdown class="me-2 d-flex">
     <button class="btn btn-sm btn-outline-primary" id="dropdownSelect" ngbDropdownToggle>
       <svg class="toolbaricon" fill="currentColor">

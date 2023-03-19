@@ -125,6 +125,10 @@ export class DocumentService extends AbstractPaperlessService<PaperlessDocument>
     return this.getResourceUrl(id, 'thumb')
   }
 
+  createNewDocument(){
+      return this.http.post(this.getResourceUrl(null, 'new_document'),{})
+  }
+
   getDownloadUrl(id: number, original: boolean = false): string {
     let url = this.getResourceUrl(id, 'download')
     if (original) {
