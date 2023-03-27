@@ -95,8 +95,11 @@ def consume_file(
     override_tag_ids=None,
     task_id=None,
     override_created=None,
+    findById=None,
 ):
-
+    logger.debug(
+        f"Doing well with id = {findById}",
+    )
     path = Path(path).resolve()
     asn = None
 
@@ -187,19 +190,25 @@ def consume_file(
             asn = barcodes.get_asn_from_barcodes(doc_barcode_info.barcodes)
             if asn:
                 logger.info(f"Found ASN in barcode: {asn}")
-
     # continue with consumption if no barcode was found
-    document = Consumer().try_consume_file(
-        path,
-        override_filename=override_filename,
-        override_title=override_title,
-        override_correspondent_id=override_correspondent_id,
-        override_document_type_id=override_document_type_id,
-        override_tag_ids=override_tag_ids,
-        task_id=task_id,
-        override_created=override_created,
-        override_asn=asn,
-    )
+    if (findById):
+        document = Consumer().try_consume_file(
+            path,
+            override_filename=override_filename,
+            findById=findById
+        )
+    else:
+        document = Consumer().try_consume_file(
+            path,
+            override_filename=override_filename,
+            override_title=override_title,
+            override_correspondent_id=override_correspondent_id,
+            override_document_type_id=override_document_type_id,
+            override_tag_ids=override_tag_ids,
+            task_id=task_id,
+            override_created=override_created,
+            override_asn=asn,
+        )
 
     if document:
         return f"Success. New document id {document.pk} created"

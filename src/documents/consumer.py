@@ -286,6 +286,7 @@ class Consumer(LoggingMixin):
         task_id=None,
         override_created=None,
         override_asn=None,
+        findById=None,
     ) -> Document:
         """
         Return the document object if it was successfully created.
@@ -417,7 +418,11 @@ class Consumer(LoggingMixin):
             with transaction.atomic():
 
                 # store the document.
-                document = self._store(text=text, date=date, mime_type=mime_type)
+                if findById:
+                    self.log("debug", f"UPDATING THE DOCUMENT WITH ID={findById}...")
+                    document = self._store(text=text, date=date, mime_type=mime_type, findById=findById)
+                else:
+                    document = self._store(text=text, date=date, mime_type=mime_type, findById=None)
 
                 # If we get here, it was successful. Proceed with post-consume
                 # hooks. If they fail, nothing will get changed.
@@ -508,6 +513,7 @@ class Consumer(LoggingMixin):
         text: str,
         date: Optional[datetime.datetime],
         mime_type: str,
+        findById: Optional[str]
     ) -> Document:
 
         # If someone gave us the original filename, use it instead of doc.
@@ -536,18 +542,28 @@ class Consumer(LoggingMixin):
             self.log("debug", f"Creation date from st_mtime: {create_date}")
 
         storage_type = Document.STORAGE_TYPE_UNENCRYPTED
-
         with open(self.path, "rb") as f:
-            document = Document.objects.create(
-                title=(self.override_title or file_info.title)[:127],
-                content=text,
-                mime_type=mime_type,
-                checksum=hashlib.md5(f.read()).hexdigest(),
-                created=create_date,
-                modified=create_date,
-                storage_type=storage_type,
-                original_filename=self.filename,
-            )
+            if findById:
+                realId = int(findById)
+                document = Document.objects.get(id=realId);
+                document.checksum = hashlib.md5(f.read()).hexdigest()
+                document.content = text
+                document.original_filename = self.filename
+                document.storage_type = storage_type
+                document.mime_type = mime_type
+                document.archive_checksum = None;
+                document.archive_filename = None;
+            else:
+                document = Document.objects.create(
+                    title=(self.override_title or file_info.title)[:127],
+                    content=text,
+                    mime_type=mime_type,
+                    checksum=hashlib.md5(f.read()).hexdigest(),
+                    created=create_date,
+                    modified=create_date,
+                    storage_type=storage_type,
+                    original_filename=self.filename,
+                )
 
         self.apply_overrides(document)
 

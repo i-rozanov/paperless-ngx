@@ -19,13 +19,16 @@ export class UploadDocumentsService {
     private consumerStatusService: ConsumerStatusService
   ) {}
 
-  uploadFiles(files: NgxFileDropEntry[]) {
+  uploadFiles(files: NgxFileDropEntry[], id :string = null) {
     for (const droppedFile of files) {
       if (droppedFile.fileEntry.isFile) {
         const fileEntry = droppedFile.fileEntry as FileSystemFileEntry
         fileEntry.file((file: File) => {
           let formData = new FormData()
           formData.append('document', file, file.name)
+          if (id){
+            formData.append('id', id)
+          }
           let status = this.consumerStatusService.newFileUpload(file.name)
 
           status.message = $localize`Connecting...`

@@ -74,15 +74,21 @@ export class AppComponent implements OnInit, OnDestroy {
         if (
           this.showNotification(SETTINGS_KEYS.NOTIFICATIONS_CONSUMER_SUCCESS)
         ) {
-          this.toastService.show({
-            title: $localize`Document added`,
-            delay: 10000,
-            content: $localize`Document ${status.filename} was added to paperless.`,
-            actionName: $localize`Open document`,
-            action: () => {
-              this.router.navigate(['documents', status.documentId])
-            },
-          })
+          const regexpDocument = /\/documents\/([0-9]+)/;
+          const match = this.router.url.match(regexpDocument);
+          if ((match) &&(match.length > 1)){
+            window.location.reload()
+          } else {
+            this.toastService.show({
+              title: $localize`Document added`,
+              delay: 10000,
+              content: $localize`Document ${status.filename} was added to paperless.`,
+              actionName: $localize`Open document`,
+              action: () => {
+                this.router.navigate(['documents', status.documentId])
+              },
+            })
+          }
         }
       })
 
@@ -252,7 +258,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
   public dropped(files: NgxFileDropEntry[]) {
     this.fileLeave(true)
-    this.uploadDocumentsService.uploadFiles(files)
+    const regexpDocument = /\/documents\/([0-9]+)/;
+    const match = this.router.url.match(regexpDocument);
+    if ((match) &&(match.length > 1)){
+      var id = match[1];
+      this.uploadDocumentsService.uploadFiles(files, id)
+    }
+    else {
+      this.uploadDocumentsService.uploadFiles(files)
+    }
     this.toastService.showInfo($localize`Initiating upload...`, 3000)
   }
 }

@@ -630,40 +630,60 @@ class PostDocumentView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if request.data.get('id'):
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            doc_name, doc_data = serializer.validated_data.get("document")
+            t = int(mktime(datetime.datetime.now().timetuple()))
 
-        doc_name, doc_data = serializer.validated_data.get("document")
-        correspondent_id = serializer.validated_data.get("correspondent")
-        document_type_id = serializer.validated_data.get("document_type")
-        tag_ids = serializer.validated_data.get("tags")
-        title = serializer.validated_data.get("title")
-        created = serializer.validated_data.get("created")
+            os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
 
-        t = int(mktime(datetime.now().timetuple()))
+            temp_file_path = Path(tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
+                pathvalidate.sanitize_filename(doc_name),
+            )
 
-        os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
+            temp_file_path.write_bytes(doc_data)
 
-        temp_file_path = Path(tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
-            pathvalidate.sanitize_filename(doc_name),
-        )
+            os.utime(temp_file_path, times=(t, t))
 
-        temp_file_path.write_bytes(doc_data)
+            task_id = str(uuid.uuid4())
+            async_task = consume_file.delay(
+                str(temp_file_path), None, None, None, None, None, None, None, request.data.get('id')
+            )
+        else:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        os.utime(temp_file_path, times=(t, t))
+            doc_name, doc_data = serializer.validated_data.get("document")
+            correspondent_id = serializer.validated_data.get("correspondent")
+            document_type_id = serializer.validated_data.get("document_type")
+            tag_ids = serializer.validated_data.get("tags")
+            title = serializer.validated_data.get("title")
+            created = serializer.validated_data.get("created")
 
-        task_id = str(uuid.uuid4())
+            t = int(mktime(datetime.datetime.now().timetuple()))
 
-        async_task = consume_file.delay(
-            # Paths are not JSON friendly
-            str(temp_file_path),
-            override_title=title,
-            override_correspondent_id=correspondent_id,
-            override_document_type_id=document_type_id,
-            override_tag_ids=tag_ids,
-            task_id=task_id,
-            override_created=created,
-        )
+            os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
+
+            temp_file_path = Path(tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
+                pathvalidate.sanitize_filename(doc_name),
+            )
+
+            temp_file_path.write_bytes(doc_data)
+
+            os.utime(temp_file_path, times=(t, t))
+
+            task_id = str(uuid.uuid4())
+            async_task = consume_file.delay(
+                # Paths are not JSON friendly
+                str(temp_file_path),
+                override_title=title,
+                override_correspondent_id=correspondent_id,
+                override_document_type_id=document_type_id,
+                override_tag_ids=tag_ids,
+                task_id=task_id,
+                override_created=created,
+            )
 
         return Response(async_task.id)
 
