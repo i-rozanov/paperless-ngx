@@ -7,6 +7,14 @@
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Создать</ng-container></div>
     </button>
   </div>
+  <div ngbDropdown class="btn-group me-2 flex-fill">
+    <button class="btn btn-sm btn-outline-primary" id="downloadCSV" (click)="downloadCSV()">
+      <svg class="toolbaricon" fill="currentColor">
+        <use xlink:href="assets/bootstrap-icons.svg#journals" />
+      </svg>
+      <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Отчет</ng-container></div>
+    </button>
+  </div>
   <div ngbDropdown class="me-2 d-flex">
     <button class="btn btn-sm btn-outline-primary" id="dropdownSelect" ngbDropdownToggle>
       <svg class="toolbaricon" fill="currentColor">

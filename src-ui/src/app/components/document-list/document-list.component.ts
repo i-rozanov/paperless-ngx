@@ -31,6 +31,7 @@ import {
 } from 'src/app/services/rest/document.service'
 import { SavedViewService } from 'src/app/services/rest/saved-view.service'
 import { ToastService } from 'src/app/services/toast.service'
+import { environment } from 'src/environments/environment'
 import { FilterEditorComponent } from './filter-editor/filter-editor.component'
 import { SaveViewConfigDialogComponent } from './save-view-config-dialog/save-view-config-dialog.component'
 
@@ -102,6 +103,10 @@ export class DocumentListComponent implements OnInit, OnDestroy {
       var newId = results.result
       this.router.navigateByUrl('/documents/'+String(newId))
     })
+  }
+
+  downloadCSV(){
+    window.open(environment.apiBaseUrl + this.router.url.replace('/documents','report_documents/') + '&page=1&page_size=100000', '_self');
   }
 
   getSortFields() {
