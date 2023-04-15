@@ -547,6 +547,25 @@ class UnifiedSearchViewSet(DocumentViewSet):
         else:
             return super().list(request)
 
+class UnifiedCsvViewSet(UnifiedSearchViewSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def list(self, request, *args, **kwargs):
+        docs = super().list(request)
+        # test_file = open('/home/poop/serve/test.pdf', 'rb')
+        content = 'Дата;Номер;Корреспондент;Название;Имя файла'
+        for document in  docs.data['results']:
+            content += "\n" + str(document['added_date'])
+            content += ";" + str(document['asn_string'])
+            content += ";"  + str(document['correspondent'])
+            content += ";" + str(document['title'])
+            content += ";" + str(document['original_file_name'])
+        response = HttpResponse(content=content)
+        response['Content-Type'] = 'text/csv'
+        response['Content-Disposition'] = 'attachment; filename="report.csv"'
+
+        return response;
 
 class LogViewSet(ViewSet):
 
