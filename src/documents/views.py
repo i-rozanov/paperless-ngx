@@ -3,6 +3,8 @@ import itertools
 import json
 import logging
 import os
+import pdb
+import re
 import tempfile
 import time
 import urllib
@@ -13,6 +15,7 @@ from pathlib import Path
 from time import mktime
 from unicodedata import normalize
 from urllib.parse import quote
+from PyPDF2 import PdfMerger
 
 import pathvalidate
 from django.conf import settings
@@ -854,6 +857,48 @@ class BulkDownloadView(GenericAPIView):
 
             return response
 
+class UnifiedDownloadViewSet(UnifiedSearchViewSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def list(self, request, *args, **kwargs):
+        merger = PdfMerger()
+        os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
+        regex = r".*\.pdf$"
+        pattern = re.compile(".*\.pdf$")
+
+        temp = tempfile.NamedTemporaryFile(
+            dir=settings.SCRATCH_DIR,
+            suffix="-compressed-archive",
+            delete=False,
+        )
+        docs = super().list(request)
+        # test_file = open('/home/poop/serve/test.pdf', 'rb')
+        content = 'Дата;Номер;Корреспондент;Название;Имя файла'
+        for document in  docs.data['results']:
+            doc= Document.objects.get(id=int(document["id"]))
+            # pdb.set_trace()
+            # doc.source_path
+            if pattern.match(doc.source_path):
+                print(str(document["id"]) + ' ' + doc.source_path)
+                merger.append(doc.source_path)
+        merger.write(temp.name)
+        merger.close()
+        with open(temp.name, "rb") as f:
+            response = HttpResponse(f, content_type="application/pdf")
+            response['Content-Disposition'] = 'attachment; filename="' + temp.name + '"'
+
+            return response
+
+    # response = HttpResponse(pdf, content_type='application/pdf')
+    # response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
+    # return response
+
+        # response = HttpResponse(content=content)
+        # response['Content-Type'] = 'text/csv'
+        # response['Content-Disposition'] = 'attachment; filename="report.csv"'
+
+        # return '';
 
 class RemoteVersionView(GenericAPIView):
     def get(self, request, format=None):

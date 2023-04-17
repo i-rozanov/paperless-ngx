@@ -7,7 +7,7 @@ from django.urls import re_path
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import RedirectView
-from documents.views import AcknowledgeTasksView, NewDocumentView, UnifiedCsvViewSet
+from documents.views import AcknowledgeTasksView, NewDocumentView, UnifiedCsvViewSet, UnifiedDownloadViewSet
 from documents.views import BulkDownloadView
 from documents.views import BulkEditView
 from documents.views import CorrespondentViewSet
@@ -37,6 +37,7 @@ api_router.register(r"correspondents", CorrespondentViewSet)
 api_router.register(r"document_types", DocumentTypeViewSet)
 api_router.register(r"documents", UnifiedSearchViewSet)
 api_router.register(r"report_documents", UnifiedCsvViewSet)
+api_router.register(r"download_documents", UnifiedDownloadViewSet)
 api_router.register(r"logs", LogViewSet, basename="logs")
 api_router.register(r"tags", TagViewSet)
 api_router.register(r"saved_views", SavedViewViewSet)
