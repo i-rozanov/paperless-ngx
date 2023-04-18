@@ -15,7 +15,7 @@ from pathlib import Path
 from time import mktime
 from unicodedata import normalize
 from urllib.parse import quote
-from PyPDF2 import PdfMerger
+from pypdf import PdfMerger
 
 import pathvalidate
 from django.conf import settings

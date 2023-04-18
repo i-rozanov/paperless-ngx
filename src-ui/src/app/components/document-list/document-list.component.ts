@@ -107,7 +107,7 @@ export class DocumentListComponent implements OnInit, OnDestroy {
 
   downloadCSV(){
     window.open(environment.apiBaseUrl + this.router.url.replace('/documents','report_documents/') + '&page=1&page_size=100000', '_self');
-    window.open(environment.apiBaseUrl + this.router.url.replace('/documents','download_documents/') + '&page=1&page_size=100000', '_self');
+    setTimeout(() => window.open(environment.apiBaseUrl + this.router.url.replace('/documents','download_documents/') + '&page=1&page_size=100000', '_self'),500)
   }
 
   getSortFields() {
