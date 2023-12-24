@@ -744,13 +744,15 @@ class Consumer(LoggingMixin):
             else:
                 document = Document.objects.create(
                     title=(
-                              self._parse_title_placeholders(self.override_title)
+                              self._parse_title_placeholders(
+                                  self.override_title)
                               if self.override_title is not None
                               else file_info.title
                           )[:127],
                     content=text,
                     mime_type=mime_type,
-                    checksum=hashlib.md5(self.original_path.read_bytes()).hexdigest(),
+                    checksum=hashlib.md5(
+                        self.original_path.read_bytes()).hexdigest(),
                     created=create_date,
                     modified=create_date,
                     storage_type=storage_type,

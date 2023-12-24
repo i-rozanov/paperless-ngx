@@ -79,7 +79,7 @@ export class AppComponent implements OnInit, OnDestroy {
           ) {
             const regexpDocument = /\/documents\/([0-9]+)/;
             const match = this.router.url.match(regexpDocument);
-            if ((match) &&(match.length > 1)){
+            if ((match) && (match.length > 1)) {
               window.location.reload()
             } else {
               this.toastService.show({
