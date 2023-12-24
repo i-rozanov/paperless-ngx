@@ -25,9 +25,6 @@ export class NumberComponent extends AbstractInputComponent<number> {
   @Input()
   step: number = 1
 
-  @Input()
-  step: number = 1
-
   constructor(private documentService: DocumentService) {
     super()
   }
