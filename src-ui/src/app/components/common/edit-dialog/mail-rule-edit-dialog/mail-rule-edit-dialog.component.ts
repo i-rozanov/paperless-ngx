@@ -18,6 +18,8 @@ import { CorrespondentService } from 'src/app/services/rest/correspondent.servic
 import { DocumentTypeService } from 'src/app/services/rest/document-type.service'
 import { MailAccountService } from 'src/app/services/rest/mail-account.service'
 import { MailRuleService } from 'src/app/services/rest/mail-rule.service'
+import { UserService } from 'src/app/services/rest/user.service'
+import { SettingsService } from 'src/app/services/settings.service'
 
 const ATTACHMENT_TYPE_OPTIONS = [
   {
@@ -77,6 +79,10 @@ const METADATA_TITLE_OPTIONS = [
     id: MailMetadataTitleOption.FromFilename,
     name: $localize`Use attachment filename as title`,
   },
+  {
+    id: MailMetadataTitleOption.None,
+    name: $localize`Do not assign title from this rule`,
+  },
 ]
 
 const METADATA_CORRESPONDENT_OPTIONS = [
@@ -99,7 +105,7 @@ const METADATA_CORRESPONDENT_OPTIONS = [
 ]
 
 @Component({
-  selector: 'app-mail-rule-edit-dialog',
+  selector: 'pngx-mail-rule-edit-dialog',
   templateUrl: './mail-rule-edit-dialog.component.html',
   styleUrls: ['./mail-rule-edit-dialog.component.scss'],
 })
@@ -113,9 +119,11 @@ export class MailRuleEditDialogComponent extends EditDialogComponent<PaperlessMa
     activeModal: NgbActiveModal,
     accountService: MailAccountService,
     correspondentService: CorrespondentService,
-    documentTypeService: DocumentTypeService
+    documentTypeService: DocumentTypeService,
+    userService: UserService,
+    settingsService: SettingsService
   ) {
-    super(service, activeModal)
+    super(service, activeModal, userService, settingsService)
 
     accountService
       .listAll()
@@ -147,9 +155,11 @@ export class MailRuleEditDialogComponent extends EditDialogComponent<PaperlessMa
       account: new FormControl(null),
       folder: new FormControl('INBOX'),
       filter_from: new FormControl(null),
+      filter_to: new FormControl(null),
       filter_subject: new FormControl(null),
       filter_body: new FormControl(null),
-      filter_attachment_filename: new FormControl(null),
+      filter_attachment_filename_include: new FormControl(null),
+      filter_attachment_filename_exclude: new FormControl(null),
       maximum_age: new FormControl(null),
       attachment_type: new FormControl(MailFilterAttachmentType.Attachments),
       consumption_scope: new FormControl(MailRuleConsumptionScope.Attachments),
@@ -163,6 +173,7 @@ export class MailRuleEditDialogComponent extends EditDialogComponent<PaperlessMa
         MailMetadataCorrespondentOption.FromNothing
       ),
       assign_correspondent: new FormControl(null),
+      assign_owner_from_rule: new FormControl(true),
     })
   }
 

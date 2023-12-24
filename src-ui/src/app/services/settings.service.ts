@@ -7,7 +7,6 @@ import {
   LOCALE_ID,
   Renderer2,
   RendererFactory2,
-  RendererStyleFlags2,
 } from '@angular/core'
 import { Meta } from '@angular/platform-browser'
 import { CookieService } from 'ngx-cookie-service'
@@ -23,8 +22,10 @@ import {
   SETTINGS,
   SETTINGS_KEYS,
 } from '../data/paperless-uisettings'
-import { SavedViewService } from './rest/saved-view.service'
+import { PaperlessUser } from '../data/paperless-user'
+import { PermissionsService } from './permissions.service'
 import { ToastService } from './toast.service'
+import { PaperlessSavedView } from '../data/paperless-saved-view'
 
 export interface LanguageOption {
   code: string
@@ -41,14 +42,23 @@ export interface LanguageOption {
   providedIn: 'root',
 })
 export class SettingsService {
-  private renderer: Renderer2
   protected baseUrl: string = environment.apiBaseUrl + 'ui_settings/'
 
   private settings: Object = {}
-
-  public displayName: string
+  currentUser: PaperlessUser
 
   public settingsSaved: EventEmitter<any> = new EventEmitter()
+
+  private _renderer: Renderer2
+  public get renderer(): Renderer2 {
+    return this._renderer
+  }
+
+  public dashboardIsEmpty: boolean = false
+
+  public globalDropzoneEnabled: boolean = true
+  public globalDropzoneActive: boolean = false
+  public organizingSidebarSavedViews: boolean = false
 
   constructor(
     rendererFactory: RendererFactory2,
@@ -58,9 +68,9 @@ export class SettingsService {
     @Inject(LOCALE_ID) private localeId: string,
     protected http: HttpClient,
     private toastService: ToastService,
-    private savedViewService: SavedViewService
+    private permissionsService: PermissionsService
   ) {
-    this.renderer = rendererFactory.createRenderer(null, null)
+    this._renderer = rendererFactory.createRenderer(null, null)
   }
 
   // this is called by the app initializer in app.module
@@ -73,9 +83,21 @@ export class SettingsService {
         // to update lang cookie
         if (this.settings['language']?.length)
           this.setLanguage(this.settings['language'])
-        this.displayName = uisettings.display_name.trim()
+        this.currentUser = uisettings.user
+        this.permissionsService.initialize(
+          uisettings.permissions,
+          this.currentUser
+        )
       })
     )
+  }
+
+  get displayName(): string {
+    return (
+      this.currentUser.first_name ??
+      this.currentUser.username ??
+      ''
+    ).trim()
   }
 
   public updateAppearanceSettings(
@@ -88,53 +110,43 @@ export class SettingsService {
     themeColor ??= this.get(SETTINGS_KEYS.THEME_COLOR)
 
     if (darkModeUseSystem) {
-      this.renderer.addClass(this.document.body, 'color-scheme-system')
-      this.renderer.removeClass(this.document.body, 'color-scheme-dark')
+      this._renderer.setAttribute(
+        this.document.documentElement,
+        'data-bs-theme',
+        'auto'
+      )
     } else {
-      this.renderer.removeClass(this.document.body, 'color-scheme-system')
-      darkModeEnabled
-        ? this.renderer.addClass(this.document.body, 'color-scheme-dark')
-        : this.renderer.removeClass(this.document.body, 'color-scheme-dark')
+      this._renderer.setAttribute(
+        this.document.documentElement,
+        'data-bs-theme',
+        darkModeEnabled ? 'dark' : 'light'
+      )
     }
-
-    // remove these in case they were there
-    this.renderer.removeClass(this.document.body, 'primary-dark')
-    this.renderer.removeClass(this.document.body, 'primary-light')
 
     if (themeColor) {
       const hsl = hexToHsl(themeColor)
       const bgBrightnessEstimate = estimateBrightnessForColor(themeColor)
 
       if (bgBrightnessEstimate == BRIGHTNESS.DARK) {
-        this.renderer.addClass(this.document.body, 'primary-dark')
-        this.renderer.removeClass(this.document.body, 'primary-light')
+        this._renderer.addClass(this.document.body, 'primary-dark')
+        this._renderer.removeClass(this.document.body, 'primary-light')
       } else {
-        this.renderer.addClass(this.document.body, 'primary-light')
-        this.renderer.removeClass(this.document.body, 'primary-dark')
+        this._renderer.addClass(this.document.body, 'primary-light')
+        this._renderer.removeClass(this.document.body, 'primary-dark')
       }
-      this.renderer.setStyle(
-        document.body,
+      document.documentElement.style.setProperty(
         '--pngx-primary',
-        `${+hsl.h * 360},${hsl.s * 100}%`,
-        RendererStyleFlags2.DashCase
+        `${+hsl.h * 360},${hsl.s * 100}%`
       )
-      this.renderer.setStyle(
-        document.body,
+      document.documentElement.style.setProperty(
         '--pngx-primary-lightness',
-        `${hsl.l * 100}%`,
-        RendererStyleFlags2.DashCase
+        `${hsl.l * 100}%`
       )
     } else {
-      this.renderer.removeStyle(
-        document.body,
-        '--pngx-primary',
-        RendererStyleFlags2.DashCase
-      )
-      this.renderer.removeStyle(
-        document.body,
-        '--pngx-primary-lightness',
-        RendererStyleFlags2.DashCase
-      )
+      this._renderer.removeClass(this.document.body, 'primary-dark')
+      this._renderer.removeClass(this.document.body, 'primary-light')
+      document.documentElement.style.removeProperty('--pngx-primary')
+      document.documentElement.style.removeProperty('--pngx-primary-lightness')
     }
   }
 
@@ -147,6 +159,12 @@ export class SettingsService {
         dateInputFormat: 'mm/dd/yyyy',
       },
       {
+        code: 'af-za',
+        name: $localize`Afrikaans`,
+        englishName: 'Afrikaans',
+        dateInputFormat: 'yyyy-mm-dd',
+      },
+      {
         code: 'ar-ar',
         name: $localize`Arabic`,
         englishName: 'Arabic',
@@ -157,6 +175,18 @@ export class SettingsService {
         name: $localize`Belarusian`,
         englishName: 'Belarusian',
         dateInputFormat: 'dd.mm.yyyy',
+      },
+      {
+        code: 'bg-bg',
+        name: $localize`Bulgarian`,
+        englishName: 'Bulgarian',
+        dateInputFormat: 'dd.mm.yyyy',
+      },
+      {
+        code: 'ca-es',
+        name: $localize`Catalan`,
+        englishName: 'Catalan',
+        dateInputFormat: 'dd/mm/yyyy',
       },
       {
         code: 'cs-cz',
@@ -177,6 +207,12 @@ export class SettingsService {
         dateInputFormat: 'dd.mm.yyyy',
       },
       {
+        code: 'el-gr',
+        name: $localize`Greek`,
+        englishName: 'Greek',
+        dateInputFormat: 'dd/mm/yyyy',
+      },
+      {
         code: 'en-gb',
         name: $localize`English (GB)`,
         englishName: 'English (GB)',
@@ -189,10 +225,22 @@ export class SettingsService {
         dateInputFormat: 'dd/mm/yyyy',
       },
       {
+        code: 'fi-fi',
+        name: $localize`Finnish`,
+        englishName: 'Finnish',
+        dateInputFormat: 'dd.mm.yyyy',
+      },
+      {
         code: 'fr-fr',
         name: $localize`French`,
         englishName: 'French',
         dateInputFormat: 'dd/mm/yyyy',
+      },
+      {
+        code: 'hu-hu',
+        name: $localize`Hungarian`,
+        englishName: 'Hungarian',
+        dateInputFormat: 'yyyy.mm.dd',
       },
       {
         code: 'it-it',
@@ -211,6 +259,12 @@ export class SettingsService {
         name: $localize`Dutch`,
         englishName: 'Dutch',
         dateInputFormat: 'dd-mm-yyyy',
+      },
+      {
+        code: 'no-no',
+        name: $localize`Norwegian`,
+        englishName: 'Norwegian',
+        dateInputFormat: 'dd.mm.yyyy',
       },
       {
         code: 'pl-pl',
@@ -243,6 +297,12 @@ export class SettingsService {
         dateInputFormat: 'dd.mm.yyyy',
       },
       {
+        code: 'sk-sk',
+        name: $localize`Slovak`,
+        englishName: 'Slovak',
+        dateInputFormat: 'dd.mm.yyyy',
+      },
+      {
         code: 'sl-si',
         name: $localize`Slovenian`,
         englishName: 'Slovenian',
@@ -265,6 +325,12 @@ export class SettingsService {
         name: $localize`Turkish`,
         englishName: 'Turkish',
         dateInputFormat: 'yyyy-mm-dd',
+      },
+      {
+        code: 'uk-ua',
+        name: $localize`Ukrainian`,
+        englishName: 'Ukrainian',
+        dateInputFormat: 'dd.mm.yyyy',
       },
       {
         code: 'zh-cn',
@@ -325,7 +391,7 @@ export class SettingsService {
   }
 
   private getSettingRawValue(key: string): any {
-    let value = null
+    let value = undefined
     // parse key:key:key into nested object
     const keys = key.replace('general-settings:', '').split(':')
     let settingObj = this.settings
@@ -342,12 +408,20 @@ export class SettingsService {
     let setting = SETTINGS.find((s) => s.key == key)
 
     if (!setting) {
-      return null
+      return undefined
     }
 
     let value = this.getSettingRawValue(key)
 
-    if (value != null) {
+    // special case to fallback
+    if (key === SETTINGS_KEYS.DEFAULT_PERMS_OWNER && value === undefined) {
+      return this.currentUser.id
+    }
+
+    if (value !== undefined) {
+      if (value === null) {
+        return null
+      }
       switch (setting.type) {
         case 'boolean':
           return JSON.parse(value)
@@ -377,7 +451,7 @@ export class SettingsService {
 
   private settingIsSet(key: string): boolean {
     let value = this.getSettingRawValue(key)
-    return value != null
+    return value != undefined
   }
 
   storeSettings(): Observable<any> {
@@ -456,9 +530,36 @@ export class SettingsService {
   }
 
   offerTour(): boolean {
-    return (
-      !this.savedViewService.loading &&
-      this.savedViewService.dashboardViews.length == 0
-    )
+    return this.dashboardIsEmpty && !this.get(SETTINGS_KEYS.TOUR_COMPLETE)
+  }
+
+  completeTour() {
+    const tourCompleted = this.get(SETTINGS_KEYS.TOUR_COMPLETE)
+    if (!tourCompleted) {
+      this.set(SETTINGS_KEYS.TOUR_COMPLETE, true)
+      this.storeSettings()
+        .pipe(first())
+        .subscribe(() => {
+          this.toastService.showInfo(
+            $localize`You can restart the tour from the settings page.`
+          )
+        })
+    }
+  }
+
+  updateDashboardViewsSort(
+    dashboardViews: PaperlessSavedView[]
+  ): Observable<any> {
+    this.set(SETTINGS_KEYS.DASHBOARD_VIEWS_SORT_ORDER, [
+      ...new Set(dashboardViews.map((v) => v.id)),
+    ])
+    return this.storeSettings()
+  }
+
+  updateSidebarViewsSort(sidebarViews: PaperlessSavedView[]): Observable<any> {
+    this.set(SETTINGS_KEYS.SIDEBAR_VIEWS_SORT_ORDER, [
+      ...new Set(sidebarViews.map((v) => v.id)),
+    ])
+    return this.storeSettings()
   }
 }

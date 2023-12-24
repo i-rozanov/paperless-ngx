@@ -16,15 +16,16 @@ import { debounceTime, distinctUntilChanged, filter } from 'rxjs/operators'
 import { DocumentTypeService } from 'src/app/services/rest/document-type.service'
 import { TagService } from 'src/app/services/rest/tag.service'
 import { CorrespondentService } from 'src/app/services/rest/correspondent.service'
-import { filterRulesDiffer, FilterRule } from 'src/app/data/filter-rule'
+import { FilterRule } from 'src/app/data/filter-rule'
+import { filterRulesDiffer } from 'src/app/utils/filter-rules'
 import {
   FILTER_ADDED_AFTER,
   FILTER_ADDED_BEFORE,
   FILTER_ASN,
-  FILTER_CORRESPONDENT,
+  FILTER_HAS_CORRESPONDENT_ANY,
   FILTER_CREATED_AFTER,
   FILTER_CREATED_BEFORE,
-  FILTER_DOCUMENT_TYPE,
+  FILTER_HAS_DOCUMENT_TYPE_ANY,
   FILTER_FULLTEXT_MORELIKE,
   FILTER_FULLTEXT_QUERY,
   FILTER_HAS_ANY_TAG,
@@ -33,24 +34,48 @@ import {
   FILTER_DOES_NOT_HAVE_TAG,
   FILTER_TITLE,
   FILTER_TITLE_CONTENT,
-  FILTER_STORAGE_PATH,
+  FILTER_HAS_STORAGE_PATH_ANY,
   FILTER_ASN_ISNULL,
   FILTER_ASN_GT,
   FILTER_ASN_LT,
+  FILTER_DOES_NOT_HAVE_CORRESPONDENT,
+  FILTER_DOES_NOT_HAVE_DOCUMENT_TYPE,
+  FILTER_DOES_NOT_HAVE_STORAGE_PATH,
+  FILTER_DOCUMENT_TYPE,
+  FILTER_CORRESPONDENT,
+  FILTER_STORAGE_PATH,
+  FILTER_OWNER,
+  FILTER_OWNER_DOES_NOT_INCLUDE,
+  FILTER_OWNER_ISNULL,
+  FILTER_OWNER_ANY,
+  FILTER_CUSTOM_FIELDS,
 } from 'src/app/data/filter-rule-type'
-import { FilterableDropdownSelectionModel } from '../../common/filterable-dropdown/filterable-dropdown.component'
+import {
+  FilterableDropdownSelectionModel,
+  Intersection,
+  LogicalOperator,
+} from '../../common/filterable-dropdown/filterable-dropdown.component'
 import { ToggleableItemState } from '../../common/filterable-dropdown/toggleable-dropdown-button/toggleable-dropdown-button.component'
-import { DocumentService } from 'src/app/services/rest/document.service'
+import {
+  DocumentService,
+  SelectionData,
+  SelectionDataItem,
+} from 'src/app/services/rest/document.service'
 import { PaperlessDocument } from 'src/app/data/paperless-document'
 import { PaperlessStoragePath } from 'src/app/data/paperless-storage-path'
 import { StoragePathService } from 'src/app/services/rest/storage-path.service'
 import { RelativeDate } from '../../common/date-dropdown/date-dropdown.component'
+import {
+  OwnerFilterType,
+  PermissionsSelectionModel,
+} from '../../common/permissions-filter-dropdown/permissions-filter-dropdown.component'
 
 const TEXT_FILTER_TARGET_TITLE = 'title'
 const TEXT_FILTER_TARGET_TITLE_CONTENT = 'title-content'
 const TEXT_FILTER_TARGET_ASN = 'asn'
 const TEXT_FILTER_TARGET_FULLTEXT_QUERY = 'fulltext-query'
 const TEXT_FILTER_TARGET_FULLTEXT_MORELIKE = 'fulltext-morelike'
+const TEXT_FILTER_TARGET_CUSTOM_FIELDS = 'custom-fields'
 
 const TEXT_FILTER_MODIFIER_EQUALS = 'equals'
 const TEXT_FILTER_MODIFIER_NULL = 'is null'
@@ -80,7 +105,7 @@ const RELATIVE_DATE_QUERYSTRINGS = [
 ]
 
 @Component({
-  selector: 'app-filter-editor',
+  selector: 'pngx-filter-editor',
   templateUrl: './filter-editor.component.html',
   styleUrls: ['./filter-editor.component.scss'],
 })
@@ -88,29 +113,40 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
   generateFilterName() {
     if (this.filterRules.length == 1) {
       let rule = this.filterRules[0]
-      switch (this.filterRules[0].rule_type) {
+      switch (rule.rule_type) {
         case FILTER_CORRESPONDENT:
+        case FILTER_HAS_CORRESPONDENT_ANY:
           if (rule.value) {
-            return $localize`Correspondent: ${
-              this.correspondents.find((c) => c.id == +rule.value)?.name
-            }`
+            return $localize`Correspondent: ${this.correspondents.find(
+              (c) => c.id == +rule.value
+            )?.name}`
           } else {
             return $localize`Without correspondent`
           }
 
         case FILTER_DOCUMENT_TYPE:
+        case FILTER_HAS_DOCUMENT_TYPE_ANY:
           if (rule.value) {
-            return $localize`Type: ${
-              this.documentTypes.find((dt) => dt.id == +rule.value)?.name
-            }`
+            return $localize`Document type: ${this.documentTypes.find(
+              (dt) => dt.id == +rule.value
+            )?.name}`
           } else {
             return $localize`Without document type`
           }
 
+        case FILTER_STORAGE_PATH:
+        case FILTER_HAS_STORAGE_PATH_ANY:
+          if (rule.value) {
+            return $localize`Storage path: ${this.storagePaths.find(
+              (sp) => sp.id == +rule.value
+            )?.name}`
+          } else {
+            return $localize`Without storage path`
+          }
+
         case FILTER_HAS_TAGS_ALL:
-          return $localize`Tag: ${
-            this.tags.find((t) => t.id == +rule.value)?.name
-          }`
+          return $localize`Tag: ${this.tags.find((t) => t.id == +rule.value)
+            ?.name}`
 
         case FILTER_HAS_ANY_TAG:
           if (rule.value == 'false') {
@@ -122,6 +158,15 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
 
         case FILTER_ASN:
           return $localize`ASN: ${rule.value}`
+
+        case FILTER_OWNER:
+          return $localize`Owner: ${rule.value}`
+
+        case FILTER_OWNER_DOES_NOT_INCLUDE:
+          return $localize`Owner not in: ${rule.value}`
+
+        case FILTER_OWNER_ISNULL:
+          return $localize`Without an owner`
       }
     }
 
@@ -144,6 +189,11 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
   documentTypes: PaperlessDocumentType[] = []
   storagePaths: PaperlessStoragePath[] = []
 
+  tagDocumentCounts: SelectionDataItem[]
+  correspondentDocumentCounts: SelectionDataItem[]
+  documentTypeDocumentCounts: SelectionDataItem[]
+  storagePathDocumentCounts: SelectionDataItem[]
+
   _textFilter = ''
   _moreLikeId: number
   _moreLikeDoc: PaperlessDocument
@@ -156,6 +206,10 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
         name: $localize`Title & content`,
       },
       { id: TEXT_FILTER_TARGET_ASN, name: $localize`ASN` },
+      {
+        id: TEXT_FILTER_TARGET_CUSTOM_FIELDS,
+        name: $localize`Custom fields`,
+      },
       {
         id: TEXT_FILTER_TARGET_FULLTEXT_QUERY,
         name: $localize`Advanced search`,
@@ -222,6 +276,8 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
   dateCreatedRelativeDate: RelativeDate
   dateAddedRelativeDate: RelativeDate
 
+  permissionsSelectionModel = new PermissionsSelectionModel()
+
   _unmodifiedFilterRules: FilterRule[] = []
   _filterRules: FilterRule[] = []
 
@@ -255,6 +311,7 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
     this.dateCreatedRelativeDate = null
     this.dateAddedRelativeDate = null
     this.textFilterModifier = TEXT_FILTER_MODIFIER_EQUALS
+    this.permissionsSelectionModel.clear()
 
     value.forEach((rule) => {
       switch (rule.rule_type) {
@@ -269,6 +326,10 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
         case FILTER_ASN:
           this._textFilter = rule.value
           this.textFilterTarget = TEXT_FILTER_TARGET_ASN
+          break
+        case FILTER_CUSTOM_FIELDS:
+          this._textFilter = rule.value
+          this.textFilterTarget = TEXT_FILTER_TARGET_CUSTOM_FIELDS
           break
         case FILTER_FULLTEXT_QUERY:
           let allQueryArgs = rule.value.split(',')
@@ -326,6 +387,7 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
           this.dateAddedBefore = rule.value
           break
         case FILTER_HAS_TAGS_ALL:
+          this.tagSelectionModel.logicalOperator = LogicalOperator.And
           this.tagSelectionModel.set(
             rule.value ? +rule.value : null,
             ToggleableItemState.Selected,
@@ -333,7 +395,7 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
           )
           break
         case FILTER_HAS_TAGS_ANY:
-          this.tagSelectionModel.logicalOperator = 'or'
+          this.tagSelectionModel.logicalOperator = LogicalOperator.Or
           this.tagSelectionModel.set(
             rule.value ? +rule.value : null,
             ToggleableItemState.Selected,
@@ -351,23 +413,56 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
           )
           break
         case FILTER_CORRESPONDENT:
+        case FILTER_HAS_CORRESPONDENT_ANY:
+          this.correspondentSelectionModel.logicalOperator = LogicalOperator.Or
+          this.correspondentSelectionModel.intersection = Intersection.Include
           this.correspondentSelectionModel.set(
             rule.value ? +rule.value : null,
             ToggleableItemState.Selected,
             false
           )
           break
+        case FILTER_DOES_NOT_HAVE_CORRESPONDENT:
+          this.correspondentSelectionModel.intersection = Intersection.Exclude
+          this.correspondentSelectionModel.set(
+            rule.value ? +rule.value : null,
+            ToggleableItemState.Excluded,
+            false
+          )
+          break
         case FILTER_DOCUMENT_TYPE:
+        case FILTER_HAS_DOCUMENT_TYPE_ANY:
+          this.documentTypeSelectionModel.logicalOperator = LogicalOperator.Or
+          this.documentTypeSelectionModel.intersection = Intersection.Include
           this.documentTypeSelectionModel.set(
             rule.value ? +rule.value : null,
             ToggleableItemState.Selected,
             false
           )
           break
+        case FILTER_DOES_NOT_HAVE_DOCUMENT_TYPE:
+          this.documentTypeSelectionModel.intersection = Intersection.Exclude
+          this.documentTypeSelectionModel.set(
+            rule.value ? +rule.value : null,
+            ToggleableItemState.Excluded,
+            false
+          )
+          break
         case FILTER_STORAGE_PATH:
+        case FILTER_HAS_STORAGE_PATH_ANY:
+          this.storagePathSelectionModel.logicalOperator = LogicalOperator.Or
+          this.storagePathSelectionModel.intersection = Intersection.Include
           this.storagePathSelectionModel.set(
             rule.value ? +rule.value : null,
             ToggleableItemState.Selected,
+            false
+          )
+          break
+        case FILTER_DOES_NOT_HAVE_STORAGE_PATH:
+          this.storagePathSelectionModel.intersection = Intersection.Exclude
+          this.storagePathSelectionModel.set(
+            rule.value ? +rule.value : null,
+            ToggleableItemState.Excluded,
             false
           )
           break
@@ -388,6 +483,35 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
           this.textFilterModifier = TEXT_FILTER_MODIFIER_LT
           this._textFilter = rule.value
           break
+        case FILTER_OWNER:
+          this.permissionsSelectionModel.ownerFilter = OwnerFilterType.SELF
+          this.permissionsSelectionModel.hideUnowned = false
+          if (rule.value)
+            this.permissionsSelectionModel.userID = parseInt(rule.value, 10)
+          break
+        case FILTER_OWNER_ANY:
+          this.permissionsSelectionModel.ownerFilter = OwnerFilterType.OTHERS
+          if (rule.value)
+            this.permissionsSelectionModel.includeUsers.push(
+              parseInt(rule.value, 10)
+            )
+          break
+        case FILTER_OWNER_DOES_NOT_INCLUDE:
+          this.permissionsSelectionModel.ownerFilter = OwnerFilterType.NOT_SELF
+          if (rule.value)
+            this.permissionsSelectionModel.excludeUsers.push(
+              parseInt(rule.value, 10)
+            )
+          break
+        case FILTER_OWNER_ISNULL:
+          if (rule.value === 'true' || rule.value === '1') {
+            this.permissionsSelectionModel.hideUnowned = false
+            this.permissionsSelectionModel.ownerFilter = OwnerFilterType.UNOWNED
+          } else {
+            this.permissionsSelectionModel.hideUnowned =
+              rule.value === 'false' || rule.value === '0'
+            break
+          }
       }
     })
     this.rulesModified = filterRulesDiffer(
@@ -440,6 +564,15 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
     }
     if (
       this._textFilter &&
+      this.textFilterTarget == TEXT_FILTER_TARGET_CUSTOM_FIELDS
+    ) {
+      filterRules.push({
+        rule_type: FILTER_CUSTOM_FIELDS,
+        value: this._textFilter,
+      })
+    }
+    if (
+      this._textFilter &&
       this.textFilterTarget == TEXT_FILTER_TARGET_FULLTEXT_QUERY
     ) {
       filterRules.push({
@@ -453,14 +586,14 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
     ) {
       filterRules.push({
         rule_type: FILTER_FULLTEXT_MORELIKE,
-        value: this._moreLikeId?.toString(),
+        value: this._moreLikeId.toString(),
       })
     }
     if (this.tagSelectionModel.isNoneSelected()) {
       filterRules.push({ rule_type: FILTER_HAS_ANY_TAG, value: 'false' })
     } else {
       const tagFilterType =
-        this.tagSelectionModel.logicalOperator == 'and'
+        this.tagSelectionModel.logicalOperator == LogicalOperator.And
           ? FILTER_HAS_TAGS_ALL
           : FILTER_HAS_TAGS_ANY
       this.tagSelectionModel
@@ -482,28 +615,66 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
           })
         })
     }
-    this.correspondentSelectionModel
-      .getSelectedItems()
-      .forEach((correspondent) => {
-        filterRules.push({
-          rule_type: FILTER_CORRESPONDENT,
-          value: correspondent.id?.toString(),
+    if (this.correspondentSelectionModel.isNoneSelected()) {
+      filterRules.push({ rule_type: FILTER_CORRESPONDENT, value: null })
+    } else {
+      this.correspondentSelectionModel
+        .getSelectedItems()
+        .forEach((correspondent) => {
+          filterRules.push({
+            rule_type: FILTER_HAS_CORRESPONDENT_ANY,
+            value: correspondent.id?.toString(),
+          })
         })
-      })
-    this.documentTypeSelectionModel
-      .getSelectedItems()
-      .forEach((documentType) => {
-        filterRules.push({
-          rule_type: FILTER_DOCUMENT_TYPE,
-          value: documentType.id?.toString(),
+      this.correspondentSelectionModel
+        .getExcludedItems()
+        .forEach((correspondent) => {
+          filterRules.push({
+            rule_type: FILTER_DOES_NOT_HAVE_CORRESPONDENT,
+            value: correspondent.id?.toString(),
+          })
         })
-      })
-    this.storagePathSelectionModel.getSelectedItems().forEach((storagePath) => {
-      filterRules.push({
-        rule_type: FILTER_STORAGE_PATH,
-        value: storagePath.id?.toString(),
-      })
-    })
+    }
+    if (this.documentTypeSelectionModel.isNoneSelected()) {
+      filterRules.push({ rule_type: FILTER_DOCUMENT_TYPE, value: null })
+    } else {
+      this.documentTypeSelectionModel
+        .getSelectedItems()
+        .forEach((documentType) => {
+          filterRules.push({
+            rule_type: FILTER_HAS_DOCUMENT_TYPE_ANY,
+            value: documentType.id?.toString(),
+          })
+        })
+      this.documentTypeSelectionModel
+        .getExcludedItems()
+        .forEach((documentType) => {
+          filterRules.push({
+            rule_type: FILTER_DOES_NOT_HAVE_DOCUMENT_TYPE,
+            value: documentType.id?.toString(),
+          })
+        })
+    }
+    if (this.storagePathSelectionModel.isNoneSelected()) {
+      filterRules.push({ rule_type: FILTER_STORAGE_PATH, value: null })
+    } else {
+      this.storagePathSelectionModel
+        .getSelectedItems()
+        .forEach((storagePath) => {
+          filterRules.push({
+            rule_type: FILTER_HAS_STORAGE_PATH_ANY,
+            value: storagePath.id?.toString(),
+          })
+        })
+      this.storagePathSelectionModel
+        .getExcludedItems()
+        .forEach((storagePath) => {
+          filterRules.push({
+            rule_type: FILTER_DOES_NOT_HAVE_STORAGE_PATH,
+            value: storagePath.id?.toString(),
+          })
+        })
+    }
     if (this.dateCreatedBefore) {
       filterRules.push({
         rule_type: FILTER_CREATED_BEFORE,
@@ -611,11 +782,56 @@ export class FilterEditorComponent implements OnInit, OnDestroy {
         }
       }
     }
+    if (this.permissionsSelectionModel.ownerFilter == OwnerFilterType.SELF) {
+      filterRules.push({
+        rule_type: FILTER_OWNER,
+        value: this.permissionsSelectionModel.userID.toString(),
+      })
+    } else if (
+      this.permissionsSelectionModel.ownerFilter == OwnerFilterType.NOT_SELF
+    ) {
+      filterRules.push({
+        rule_type: FILTER_OWNER_DOES_NOT_INCLUDE,
+        value: this.permissionsSelectionModel.excludeUsers?.join(','),
+      })
+    } else if (
+      this.permissionsSelectionModel.ownerFilter == OwnerFilterType.OTHERS
+    ) {
+      filterRules.push({
+        rule_type: FILTER_OWNER_ANY,
+        value: this.permissionsSelectionModel.includeUsers?.join(','),
+      })
+    } else if (
+      this.permissionsSelectionModel.ownerFilter == OwnerFilterType.UNOWNED
+    ) {
+      filterRules.push({
+        rule_type: FILTER_OWNER_ISNULL,
+        value: 'true',
+      })
+    }
+
+    if (this.permissionsSelectionModel.hideUnowned) {
+      filterRules.push({
+        rule_type: FILTER_OWNER_ISNULL,
+        value: 'false',
+      })
+    }
     return filterRules
   }
 
   @Output()
   filterRulesChange = new EventEmitter<FilterRule[]>()
+
+  @Input()
+  set selectionData(selectionData: SelectionData) {
+    this.tagDocumentCounts = selectionData?.selected_tags ?? null
+    this.documentTypeDocumentCounts =
+      selectionData?.selected_document_types ?? null
+    this.correspondentDocumentCounts =
+      selectionData?.selected_correspondents ?? null
+    this.storagePathDocumentCounts =
+      selectionData?.selected_storage_paths ?? null
+  }
 
   rulesModified: boolean = false
 

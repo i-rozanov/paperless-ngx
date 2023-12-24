@@ -1,4 +1,4 @@
-import { ObjectWithId } from './object-with-id'
+import { ObjectWithPermissions } from './object-with-permissions'
 
 export enum IMAPSecurity {
   None = 1,
@@ -6,7 +6,7 @@ export enum IMAPSecurity {
   STARTTLS = 3,
 }
 
-export interface PaperlessMailAccount extends ObjectWithId {
+export interface PaperlessMailAccount extends ObjectWithPermissions {
   name: string
 
   imap_server: string
@@ -20,4 +20,6 @@ export interface PaperlessMailAccount extends ObjectWithId {
   password: string
 
   character_set?: string
+
+  is_token: boolean
 }

@@ -1,4 +1,4 @@
-import { ObjectWithId } from './object-with-id'
+import { ObjectWithPermissions } from './object-with-permissions'
 
 export enum MailFilterAttachmentType {
   Attachments = 1,
@@ -22,6 +22,7 @@ export enum MailAction {
 export enum MailMetadataTitleOption {
   FromSubject = 1,
   FromFilename = 2,
+  None = 3,
 }
 
 export enum MailMetadataCorrespondentOption {
@@ -31,7 +32,7 @@ export enum MailMetadataCorrespondentOption {
   FromCustom = 4,
 }
 
-export interface PaperlessMailRule extends ObjectWithId {
+export interface PaperlessMailRule extends ObjectWithPermissions {
   name: string
 
   account: number // PaperlessMailAccount.id
@@ -42,11 +43,15 @@ export interface PaperlessMailRule extends ObjectWithId {
 
   filter_from: string
 
+  filter_to: string
+
   filter_subject: string
 
   filter_body: string
 
-  filter_attachment_filename: string
+  filter_attachment_filename_include: string
+
+  filter_attachment_filename_exclude: string
 
   maximum_age: number
 
@@ -65,4 +70,6 @@ export interface PaperlessMailRule extends ObjectWithId {
   assign_correspondent_from?: MailMetadataCorrespondentOption
 
   assign_correspondent?: number // PaperlessCorrespondent.id
+
+  assign_owner_from_rule: boolean
 }
