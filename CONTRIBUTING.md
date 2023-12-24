@@ -11,7 +11,7 @@ If you want to implement something big:
 
 ## Python
 
-Paperless supports python 3.8 and 3.9. We format Python code with [Black](https://github.com/psf/black).
+Paperless supports python 3.9 - 3.11. We format Python code with [Black](https://github.com/psf/black).
 
 ## Branches
 
@@ -45,7 +45,7 @@ Examples of `non-trivial` PRs might include:
 
 - Additional features
 - Large changes to many distinct files
-- Breaking or depreciation of existing features
+- Breaking or deprecation of existing features
 
 Our community review process for `non-trivial` PRs is the following:
 
@@ -57,6 +57,13 @@ Our community review process for `non-trivial` PRs is the following:
 4. **At least two** members of the team will approve and finally merge the request into `dev` 🎉.
 
 This process might be slow as community members have different schedules and time to dedicate to the Paperless project. However it ensures community code reviews are as brilliantly thorough as they once were with @jonaswinkler.
+
+# AI-Generated Code
+
+This project does not specifically prohibit the use of AI-generated code _during the process_ of creating a PR, however:
+
+1. Any code present in the final PR that was generated using AI sources should be clearly attributed as such and must not violate copyright protections.
+2. We will not accept PRs that are entirely or mostly AI-derived.
 
 # Translating Paperless-ngx
 

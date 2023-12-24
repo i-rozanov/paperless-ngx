@@ -1,17 +1,23 @@
 import logging
 import re
+from fnmatch import fnmatch
 
+from documents.classifier import DocumentClassifier
+from documents.data_models import ConsumableDocument
+from documents.data_models import DocumentSource
+from documents.models import ConsumptionTemplate
 from documents.models import Correspondent
+from documents.models import Document
 from documents.models import DocumentType
 from documents.models import MatchingModel
 from documents.models import StoragePath
 from documents.models import Tag
-
+from documents.permissions import get_objects_for_user_owner_aware
 
 logger = logging.getLogger("paperless.matching")
 
 
-def log_reason(matching_model, document, reason):
+def log_reason(matching_model: MatchingModel, document: Document, reason: str):
     class_name = type(matching_model).__name__
     logger.debug(
         f"{class_name} {matching_model.name} matched on document "
@@ -19,74 +25,117 @@ def log_reason(matching_model, document, reason):
     )
 
 
-def match_correspondents(document, classifier):
-    if classifier:
-        pred_id = classifier.predict_correspondent(document.content)
+def match_correspondents(document: Document, classifier: DocumentClassifier, user=None):
+    pred_id = classifier.predict_correspondent(document.content) if classifier else None
+
+    if user is None and document.owner is not None:
+        user = document.owner
+
+    if user is not None:
+        correspondents = get_objects_for_user_owner_aware(
+            user,
+            "documents.view_correspondent",
+            Correspondent,
+        )
     else:
-        pred_id = None
-
-    correspondents = Correspondent.objects.all()
-
-    return list(
-        filter(lambda o: matches(o, document) or o.pk == pred_id, correspondents),
-    )
-
-
-def match_document_types(document, classifier):
-    if classifier:
-        pred_id = classifier.predict_document_type(document.content)
-    else:
-        pred_id = None
-
-    document_types = DocumentType.objects.all()
-
-    return list(
-        filter(lambda o: matches(o, document) or o.pk == pred_id, document_types),
-    )
-
-
-def match_tags(document, classifier):
-    if classifier:
-        predicted_tag_ids = classifier.predict_tags(document.content)
-    else:
-        predicted_tag_ids = []
-
-    tags = Tag.objects.all()
-
-    return list(
-        filter(lambda o: matches(o, document) or o.pk in predicted_tag_ids, tags),
-    )
-
-
-def match_storage_paths(document, classifier):
-    if classifier:
-        pred_id = classifier.predict_storage_path(document.content)
-    else:
-        pred_id = None
-
-    storage_paths = StoragePath.objects.all()
+        correspondents = Correspondent.objects.all()
 
     return list(
         filter(
-            lambda o: matches(o, document) or o.pk == pred_id,
+            lambda o: matches(o, document)
+            or (o.pk == pred_id and o.matching_algorithm == MatchingModel.MATCH_AUTO),
+            correspondents,
+        ),
+    )
+
+
+def match_document_types(document: Document, classifier: DocumentClassifier, user=None):
+    pred_id = classifier.predict_document_type(document.content) if classifier else None
+
+    if user is None and document.owner is not None:
+        user = document.owner
+
+    if user is not None:
+        document_types = get_objects_for_user_owner_aware(
+            user,
+            "documents.view_documenttype",
+            DocumentType,
+        )
+    else:
+        document_types = DocumentType.objects.all()
+
+    return list(
+        filter(
+            lambda o: matches(o, document)
+            or (o.pk == pred_id and o.matching_algorithm == MatchingModel.MATCH_AUTO),
+            document_types,
+        ),
+    )
+
+
+def match_tags(document: Document, classifier: DocumentClassifier, user=None):
+    predicted_tag_ids = classifier.predict_tags(document.content) if classifier else []
+
+    if user is None and document.owner is not None:
+        user = document.owner
+
+    if user is not None:
+        tags = get_objects_for_user_owner_aware(user, "documents.view_tag", Tag)
+    else:
+        tags = Tag.objects.all()
+
+    return list(
+        filter(
+            lambda o: matches(o, document)
+            or (
+                o.matching_algorithm == MatchingModel.MATCH_AUTO
+                and o.pk in predicted_tag_ids
+            ),
+            tags,
+        ),
+    )
+
+
+def match_storage_paths(document: Document, classifier: DocumentClassifier, user=None):
+    pred_id = classifier.predict_storage_path(document.content) if classifier else None
+
+    if user is None and document.owner is not None:
+        user = document.owner
+
+    if user is not None:
+        storage_paths = get_objects_for_user_owner_aware(
+            user,
+            "documents.view_storagepath",
+            StoragePath,
+        )
+    else:
+        storage_paths = StoragePath.objects.all()
+
+    return list(
+        filter(
+            lambda o: matches(o, document)
+            or (o.pk == pred_id and o.matching_algorithm == MatchingModel.MATCH_AUTO),
             storage_paths,
         ),
     )
 
 
-def matches(matching_model, document):
+def matches(matching_model: MatchingModel, document: Document):
     search_kwargs = {}
 
     document_content = document.content
 
     # Check that match is not empty
-    if matching_model.match.strip() == "":
+    if not matching_model.match.strip():
         return False
 
     if matching_model.is_insensitive:
         search_kwargs = {"flags": re.IGNORECASE}
 
-    if matching_model.matching_algorithm == MatchingModel.MATCH_ALL:
+    if matching_model.matching_algorithm == MatchingModel.MATCH_NONE:
+        return False
+
+    elif matching_model.matching_algorithm == MatchingModel.MATCH_ALL:
         for word in _split_match(matching_model):
             search_result = re.search(rf"\b{word}\b", document_content, **search_kwargs)
             if not search_result:
@@ -129,7 +178,7 @@ def matches(matching_model, document):
             )
         except re.error:
             logger.error(
-                f"Error while processing regular expression " f"{matching_model.match}",
+                f"Error while processing regular expression {matching_model.match}",
             )
             return False
         if match:
@@ -186,3 +235,67 @@ def _split_match(matching_model):
         re.escape(normspace(" ", (t[0] or t[1]).strip())).replace(r"\ ", r"\s+")
         for t in findterms(matching_model.match)
     ]
+
+
+def document_matches_template(
+    document: ConsumableDocument,
+    template: ConsumptionTemplate,
+) -> bool:
+    """
+    Returns True if the incoming document matches all filters and
+    settings from the template, False otherwise
+    """
+
+    def log_match_failure(reason: str):
+        logger.info(f"Document did not match template {template.name}")
+        logger.debug(reason)
+
+    # Document source vs template source
+    if document.source not in [int(x) for x in list(template.sources)]:
+        log_match_failure(
+            f"Document source {document.source.name} not in"
+            f" {[DocumentSource(int(x)).name for x in template.sources]}",
+        )
+        return False
+
+    # Document mail rule vs template mail rule
+    if (
+        document.mailrule_id is not None
+        and template.filter_mailrule is not None
+        and document.mailrule_id != template.filter_mailrule.pk
+    ):
+        log_match_failure(
+            f"Document mail rule {document.mailrule_id}"
+            f" != {template.filter_mailrule.pk}",
+        )
+        return False
+
+    # Document filename vs template filename
+    if (
+        template.filter_filename is not None
+        and len(template.filter_filename) > 0
+        and not fnmatch(
+            document.original_file.name.lower(),
+            template.filter_filename.lower(),
+        )
+    ):
+        log_match_failure(
+            f"Document filename {document.original_file.name} does not match"
+            f" {template.filter_filename.lower()}",
+        )
+        return False
+
+    # Document path vs template path
+    if (
+        template.filter_path is not None
+        and len(template.filter_path) > 0
+        and not document.original_file.match(template.filter_path)
+    ):
+        log_match_failure(
+            f"Document path {document.original_file}"
+            f" does not match {template.filter_path}",
+        )
+        return False
+
+    logger.info(f"Document matched template {template.name}")
+    return True

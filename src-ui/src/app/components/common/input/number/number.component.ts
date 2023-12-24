@@ -14,7 +14,7 @@ import { AbstractInputComponent } from '../abstract-input'
       multi: true,
     },
   ],
-  selector: 'app-input-number',
+  selector: 'pngx-input-number',
   templateUrl: './number.component.html',
   styleUrls: ['./number.component.scss'],
 })
@@ -28,6 +28,9 @@ export class NumberComponent extends AbstractInputComponent<number> {
   dTypes: PaperlessDocumentType[]
   @Input()
   prefix: string
+
+  @Input()
+  step: number = 1
 
   constructor(private documentService: DocumentService) {
     super()
@@ -59,5 +62,11 @@ export class NumberComponent extends AbstractInputComponent<number> {
         }
         this.onChange(this.value)
       })
+  }
+
+  writeValue(newValue: any): void {
+    if (this.step === 1) newValue = parseInt(newValue, 10)
+    if (this.step === 0.01) newValue = parseFloat(newValue).toFixed(2)
+    super.writeValue(newValue)
   }
 }

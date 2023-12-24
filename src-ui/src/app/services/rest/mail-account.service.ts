@@ -48,4 +48,10 @@ export class MailAccountService extends AbstractPaperlessService<PaperlessMailAc
   delete(o: PaperlessMailAccount) {
     return super.delete(o).pipe(tap(() => this.reload()))
   }
+
+  test(o: PaperlessMailAccount) {
+    const account = Object.assign({}, o)
+    delete account['set_permissions']
+    return this.http.post(this.getResourceUrl() + 'test/', account)
+  }
 }

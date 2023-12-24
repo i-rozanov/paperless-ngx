@@ -22,6 +22,8 @@ export const DOCUMENT_SORT_FIELDS = [
   { field: 'created', name: $localize`Created` },
   { field: 'added', name: $localize`Added` },
   { field: 'modified', name: $localize`Modified` },
+  { field: 'num_notes', name: $localize`Notes` },
+  { field: 'owner', name: $localize`Owner` },
 ]
 
 export const DOCUMENT_SORT_FIELDS_FULLTEXT = [
@@ -112,6 +114,14 @@ export class DocumentService extends AbstractPaperlessService<PaperlessDocument>
     }).pipe(map((response) => response.results.map((doc) => doc.id)))
   }
 
+  get(id: number): Observable<PaperlessDocument> {
+    return this.http.get<PaperlessDocument>(this.getResourceUrl(id), {
+      params: {
+        full_perms: true,
+      },
+    })
+  }
+
   getPreviewUrl(id: number, original: boolean = false): string {
     let url = this.getResourceUrl(id, 'preview')
     if (this._searchQuery) url += `#search="${this._searchQuery}"`
@@ -135,6 +145,10 @@ export class DocumentService extends AbstractPaperlessService<PaperlessDocument>
       url += '?original=true'
     }
     return url
+  }
+
+  getNextAsn(): Observable<number> {
+    return this.http.get<number>(this.getResourceUrl(null, 'next_asn'))
   }
 
   update(o: PaperlessDocument): Observable<PaperlessDocument> {
