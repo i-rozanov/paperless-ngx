@@ -156,7 +156,8 @@ def consume_file(
                 # Note this will take precedence over an API provided ASN
                 # But it's from a physical barcode, so that's good
                 overrides.asn = reader.asn
-                logger.info(f"Found ASN in barcode: {overrides.asn}")template_overrides = Consumer().get_template_overrides(
+                logger.info(f"Found ASN in barcode: {overrides.asn}")
+    template_overrides = Consumer().get_template_overrides(
         input_doc=input_doc,
     )
 

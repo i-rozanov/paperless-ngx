@@ -900,7 +900,8 @@ class PostDocumentView(GenericAPIView):
             document_type_id = serializer.validated_data.get("document_type")
             tag_ids = serializer.validated_data.get("tags")
             title = serializer.validated_data.get("title")
-            created = serializer.validated_data.get("created")archive_serial_number = serializer.validated_data.get("archive_serial_number")
+            created = serializer.validated_data.get("created")
+            archive_serial_number = serializer.validated_data.get("archive_serial_number")
 
             t = int(mktime(datetime.datetime.now().timetuple()))
 
