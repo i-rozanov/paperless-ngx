@@ -7,6 +7,7 @@ import pdb
 import re
 import re
 import tempfile
+import hashlib
 import time
 import urllib
 import zipfile
@@ -915,7 +916,7 @@ class PostDocumentView(GenericAPIView):
 
             os.utime(temp_file_path, times=(t, t))
 
-            task_id = str(uuid.uuid4())
+            # task_id = str(uuid.uuid4())
             input_doc = ConsumableDocument(
                 source=DocumentSource.ApiUpload,
                 original_file=temp_file_path,

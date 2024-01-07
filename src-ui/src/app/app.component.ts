@@ -12,6 +12,8 @@ import {
   PermissionsService,
   PermissionType,
 } from './services/permissions.service'
+import { NgxFileDropEntry } from 'ngx-file-drop'
+import { UploadDocumentsService } from './services/upload-documents.service'
 
 @Component({
   selector: 'pngx-root',
@@ -23,11 +25,16 @@ export class AppComponent implements OnInit, OnDestroy {
   successSubscription: Subscription
   failedSubscription: Subscription
 
+  private fileLeaveTimeoutID: any
+  fileIsOver: boolean = false
+  hidden: boolean = true
+
   constructor(
     private settings: SettingsService,
     private consumerStatusService: ConsumerStatusService,
     private toastService: ToastService,
     private router: Router,
+    private uploadDocumentsService: UploadDocumentsService,
     private tasksService: TasksService,
     public tourService: TourService,
     private renderer: Renderer2,
@@ -272,12 +279,12 @@ export class AppComponent implements OnInit, OnDestroy {
     const regexpDocument = /\/documents\/([0-9]+)/;
     const match = this.router.url.match(regexpDocument);
     if ((match) &&(match.length > 1)){
-      var id = match[1];
-      this.uploadDocumentsService.uploadFiles(files, id)
+      const id = match[1]
+      this.uploadDocumentsService.oldUploadFiles(files, id)
     }
-    else {
-      this.uploadDocumentsService.uploadFiles(files)
-    }
+    // else {
+    //   this.uploadDocumentsService.uploadFiles(files)
+    // }
     this.toastService.showInfo($localize`Initiating upload...`, 3000)
   }
 }
