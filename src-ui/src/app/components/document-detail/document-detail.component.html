@@ -112,28 +112,29 @@
                     <ng-template ngbNavContent>
                         <div>
                             <pngx-input-text #inputTitle i18n-title title="Title" formControlName="title" [horizontal]="true" (keyup)="titleKeyUp($event)" [error]="error?.title"></pngx-input-text>
-                          <pngx-input-select [items]="documentTypes" i18n-title title="Document type" formControlName="document_type" [allowNull]="true"
-                            (createNew)="createDocumentType($event)" [suggestions]="suggestions?.document_types"></pngx-input-select>
+                          <pngx-input-select [items]="documentTypes" i18n-title title="Document type" formControlName="document_type" [allowNull]="false"
+                            (createNew)="createDocumentType($event)" [suggestions]="suggestions?.document_types" [horizontal]="true"></pngx-input-select>
                         <div *ngIf="showAsn">
-                          <app-input-asn
+                          <pngx-input-asn
                             i18n-title title="Archive serial number"
                             [error]="error?.archive_serial_number"
                             [dTypes]="documentTypes"
                             [showPlusOne]="showPlusOne"
+                            [horizontal]="true"
                             [prefix]="prefix"
                             [document]="document"
                             formControlName='archive_serial_number'>
-                          </app-input-asn>
+                          </pngx-input-asn>
                         </div>
-                          <pngx-input-number i18n-title title="Archive serial number" [error]="error?.archive_serial_number" [horizontal]="true" formControlName='archive_serial_number'></pngx-input-number>
-                            <pngx-input-date i18n-title title="Date created" formControlName="created_date" [suggestions]="suggestions?.dates" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"
+<!--                          <pngx-input-number i18n-title title="Archive serial number" [error]="error?.archive_serial_number" [horizontal]="true" formControlName='archive_serial_number'></pngx-input-number>-->
+                          <pngx-input-date i18n-title title="Date created" formControlName="created_date" [suggestions]="suggestions?.dates" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"
                                 [error]="error?.created_date"></pngx-input-date>
-                          <pngx-input-date i18n-title title="Date added" formControlName="added_date" [suggestions]="suggestions?.dates"
+                          <pngx-input-date i18n-title title="Date added" formControlName="added_date" [suggestions]="suggestions?.dates"  [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"
                             [error]="error?.added_date"></pngx-input-date>
                           <pngx-input-select [items]="correspondents" i18n-title title="Correspondent" formControlName="correspondent" [allowNull]="true" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"
                                 (createNew)="createCorrespondent($event)" [suggestions]="suggestions?.correspondents" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Correspondent }"></pngx-input-select>
-                            <pngx-input-select [items]="documentTypes" i18n-title title="Document type" formControlName="document_type" [allowNull]="true" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"
-                                (createNew)="createDocumentType($event)" [suggestions]="suggestions?.document_types" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.DocumentType }"></pngx-input-select>
+<!--                            <pngx-input-select [items]="documentTypes" i18n-title title="Document type" formControlName="document_type" [allowNull]="true" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"-->
+<!--                                (createNew)="createDocumentType($event)" [suggestions]="suggestions?.document_types" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.DocumentType }"></pngx-input-select>-->
                             <pngx-input-select [items]="storagePaths" i18n-title title="Storage path" formControlName="storage_path" [allowNull]="true" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)"
                                 (createNew)="createStoragePath($event)" [suggestions]="suggestions?.storage_paths" i18n-placeholder placeholder="Default" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.StoragePath }"></pngx-input-select>
                             <pngx-input-tags formControlName="tags" [suggestions]="suggestions?.tags" [showFilter]="true" [horizontal]="true" (filterDocuments)="filterDocuments($event)" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Tag }"></pngx-input-tags>

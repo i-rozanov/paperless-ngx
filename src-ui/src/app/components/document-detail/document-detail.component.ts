@@ -244,7 +244,7 @@ export class DocumentDetailComponent
         delete docValues['permissions_form']
         // Object.assign(this.document, docValues)
         Object.assign(this.document, this.documentForm.value)
-        // console.log('updated!')
+        console.log('updated!')
         this.showAsn  = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix.length > 0;
         this.prefix = (this.documentTypes.find(x => x.id === this.document.document_type) as PaperlessDocumentType)?.prefix;
         if (this.init_value==null){ // Первая инициализация

@@ -16,7 +16,7 @@ import { AbstractInputComponent } from '../abstract-input'
       multi: true,
     },
   ],
-  selector: 'app-input-asn',
+  selector: 'pngx-input-asn',
   templateUrl: './asn.component.html',
   styleUrls: ['./asn.component.scss'],
 })
