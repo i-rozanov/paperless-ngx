@@ -40,16 +40,19 @@ export class AsnComponent extends AbstractInputComponent<string> {
   zeroPad = (num, places) => String(num).padStart(places, '0')
 
   nextAsn() {
-    const [year] = this.document.added.toString().split('-');
+    let year = new Date().getFullYear(); // this.document.added.toString().split('-');
+    // const [year] = this.document.added.toString().split('-');
     let shortYear : number = Number(year) - 2000
+    console.log(String(year)+"-01-01")
     this.documentService
       .listFiltered(1, 1, 'archive_serial_number', true, [
         { rule_type: FILTER_ASN_ISNULL, value: 'false' },
         { rule_type: FILTER_DOCUMENT_TYPE, value: this.document?.document_type.toString()},
         { rule_type: FILTER_ID_NOT_EQUAL, value: this.document?.id.toFixed()},
-        { rule_type: FILTER_CREATED_AFTER, value: String(year)+"-01-01"},
+        { rule_type: FILTER_ADDED_AFTER, value: String(year)+"-01-01"},
       ])
       .subscribe((results) => {
+        console.log(results)
         if (results.count > 0) {
           // console.log(results.results[0].archive_serial_number)
           // console.log((Math.floor(results.results[0].archive_serial_number/100)+1)*100+shortYear)
