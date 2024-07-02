@@ -557,11 +557,12 @@ class UnifiedCsvViewSet(UnifiedSearchViewSet):
     def list(self, request, *args, **kwargs):
         docs = super().list(request)
         # test_file = open('/home/poop/serve/test.pdf', 'rb')
-        content = 'Дата;Номер;Корреспондент;Название;Имя файла'
-        for document in  docs.data['results']:
+        content = 'Дата добавления;Номер;Дата создания;Корреспондент;Название;Имя файла'
+        for document in docs.data['results']:
             content += "\n" + str(document['added_date'])
             content += ";" + str(document['asn_string'])
-            content += ";"  + str(document['correspondent'])
+            content += ";" + str(document['created_date'])
+            content += ";" + str(Correspondent.objects.get(pk=document['correspondent']).name)
             content += ";" + str(document['title'])
             content += ";" + str(document['original_file_name'])
         response = HttpResponse(content=content)
