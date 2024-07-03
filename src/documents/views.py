@@ -118,7 +118,7 @@ class IndexView(TemplateView):
         # this translates between these two forms.
         if "-" in lang:
             first = lang[: lang.index("-")]
-            second = lang[lang.index("-") + 1 :]
+            second = lang[lang.index("-") + 1:]
             return f"{first}-{second.upper()}"
         else:
             return lang
@@ -128,8 +128,10 @@ class IndexView(TemplateView):
         context["cookie_prefix"] = settings.COOKIE_PREFIX
         context["username"] = self.request.user.username
         context["full_name"] = self.request.user.get_full_name()
-        context["styles_css"] = f"frontend/{self.get_frontend_language()}/styles.css"
-        context["runtime_js"] = f"frontend/{self.get_frontend_language()}/runtime.js"
+        context[
+            "styles_css"] = f"frontend/{self.get_frontend_language()}/styles.css"
+        context[
+            "runtime_js"] = f"frontend/{self.get_frontend_language()}/runtime.js"
         context[
             "polyfills_js"
         ] = f"frontend/{self.get_frontend_language()}/polyfills.js"
@@ -168,7 +170,8 @@ class CorrespondentViewSet(ModelViewSet):
 class TagViewSet(ModelViewSet):
     model = Tag
 
-    queryset = Tag.objects.annotate(document_count=Count("documents")).order_by(
+    queryset = Tag.objects.annotate(
+        document_count=Count("documents")).order_by(
         Lower("name"),
     )
 
@@ -182,7 +185,8 @@ class TagViewSet(ModelViewSet):
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, OrderingFilter)
     filterset_class = TagFilterSet
-    ordering_fields = ("color", "name", "matching_algorithm", "match", "document_count")
+    ordering_fields = (
+        "color", "name", "matching_algorithm", "match", "document_count")
 
 
 class DocumentTypeViewSet(ModelViewSet):
@@ -235,11 +239,13 @@ class DocumentViewSet(
             fields = fields_param.split(",")
         else:
             fields = None
-        truncate_content = self.request.query_params.get("truncate_content", "False")
+        truncate_content = self.request.query_params.get("truncate_content",
+                                                         "False")
         serializer_class = self.get_serializer_class()
         kwargs.setdefault("context", self.get_serializer_context())
         kwargs.setdefault("fields", fields)
-        kwargs.setdefault("truncate_content", truncate_content.lower() in ["true", "1"])
+        kwargs.setdefault("truncate_content",
+                          truncate_content.lower() in ["true", "1"])
         return serializer_class(*args, **kwargs)
 
     def update(self, request, *args, **kwargs):
@@ -273,7 +279,8 @@ class DocumentViewSet(
             filename = doc.get_public_filename()
             mime_type = doc.mime_type
             # Support browser previewing csv files by using text mime type
-            if mime_type in {"application/csv", "text/csv"} and disposition == "inline":
+            if mime_type in {"application/csv",
+                             "text/csv"} and disposition == "inline":
                 mime_type = "text/plain"
 
         if doc.storage_type == Document.STORAGE_TYPE_GPG:
@@ -283,7 +290,8 @@ class DocumentViewSet(
         # Firefox is not able to handle unicode characters in filename field
         # RFC 5987 addresses this issue
         # see https://datatracker.ietf.org/doc/html/rfc5987#section-4.2
-        filename_normalized = normalize("NFKD", filename).encode("ascii", "ignore")
+        filename_normalized = normalize("NFKD", filename).encode("ascii",
+                                                                 "ignore")
         filename_encoded = quote(filename)
         content_disposition = (
             f"{disposition}; "
@@ -328,7 +336,8 @@ class DocumentViewSet(
             "original_mime_type": doc.mime_type,
             "media_filename": doc.filename,
             "has_archive_version": doc.has_archive_version,
-            "original_metadata": self.get_metadata(doc.source_path, doc.mime_type),
+            "original_metadata": self.get_metadata(doc.source_path,
+                                                   doc.mime_type),
             "archive_checksum": doc.archive_checksum,
             "archive_media_filename": doc.archive_filename,
             "original_filename": doc.original_filename,
@@ -361,19 +370,23 @@ class DocumentViewSet(
 
         gen = parse_date_generator(doc.filename, doc.content)
         dates = sorted(
-            {i for i in itertools.islice(gen, settings.NUMBER_OF_SUGGESTED_DATES)},
+            {i for i in
+             itertools.islice(gen, settings.NUMBER_OF_SUGGESTED_DATES)},
         )
 
         return Response(
             {
-                "correspondents": [c.id for c in match_correspondents(doc, classifier)],
+                "correspondents": [c.id for c in
+                                   match_correspondents(doc, classifier)],
                 "tags": [t.id for t in match_tags(doc, classifier)],
                 "document_types": [
                     dt.id for dt in match_document_types(doc, classifier)
                 ],
-                "storage_paths": [dt.id for dt in match_storage_paths(doc, classifier)],
+                "storage_paths": [dt.id for dt in
+                                  match_storage_paths(doc, classifier)],
                 "dates": [
-                    date.strftime("%Y-%m-%d") for date in dates if date is not None
+                    date.strftime("%Y-%m-%d") for date in dates if
+                    date is not None
                 ],
             },
         )
@@ -438,9 +451,11 @@ class DocumentViewSet(
             try:
                 return Response(self.getComments(doc))
             except Exception as e:
-                logger.warning(f"An error occurred retrieving comments: {str(e)}")
+                logger.warning(
+                    f"An error occurred retrieving comments: {str(e)}")
                 return Response(
-                    {"error": "Error retreiving comments, check logs for more detail."},
+                    {
+                        "error": "Error retreiving comments, check logs for more detail."},
                 )
         elif request.method == "POST":
             try:
@@ -484,13 +499,15 @@ class SearchResultSerializer(DocumentSerializer):
     def to_representation(self, instance):
         doc = Document.objects.get(id=instance["id"])
         comments = ",".join(
-            [str(c.comment) for c in Comment.objects.filter(document=instance["id"])],
+            [str(c.comment) for c in
+             Comment.objects.filter(document=instance["id"])],
         )
         r = super().to_representation(doc)
         r["__search_hit__"] = {
             "score": instance.score,
             "highlights": instance.highlights("content", text=doc.content),
-            "comment_highlights": instance.highlights("comments", text=comments)
+            "comment_highlights": instance.highlights("comments",
+                                                      text=comments)
             if doc
             else None,
             "rank": instance.rank,
@@ -550,19 +567,27 @@ class UnifiedSearchViewSet(DocumentViewSet):
         else:
             return super().list(request)
 
+
 class UnifiedCsvViewSet(UnifiedSearchViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         docs = super().list(request)
+
         # test_file = open('/home/poop/serve/test.pdf', 'rb')
         content = 'Дата добавления;Номер;Дата создания;Корреспондент;Название;Имя файла'
-        for document in docs.data['results']:
+        sorted_asn = sorted(docs.data['results'], key=lambda k: (k['asn_string']))
+        for document in sorted_asn:
+            correspondent_name = ''
+            try:
+                correspondent_name = Correspondent.objects.get(pk=document['correspondent']).name
+            except:
+                correspondent_name = ''
             content += "\n" + str(document['added_date'])
             content += ";" + str(document['asn_string'])
             content += ";" + str(document['created_date'])
-            content += ";" + str(Correspondent.objects.get(pk=document['correspondent']).name)
+            content += ";" + str(correspondent_name)
             content += ";" + str(document['title'])
             content += ";" + str(document['original_file_name'])
         response = HttpResponse(content=content)
@@ -571,8 +596,8 @@ class UnifiedCsvViewSet(UnifiedSearchViewSet):
 
         return response;
 
-class LogViewSet(ViewSet):
 
+class LogViewSet(ViewSet):
     permission_classes = (IsAuthenticated,)
 
     log_files = ["paperless", "mail"]
@@ -612,7 +637,6 @@ class SavedViewViewSet(ModelViewSet):
 
 
 class BulkEditView(GenericAPIView):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = BulkEditSerializer
     parser_classes = (parsers.JSONParser,)
@@ -632,21 +656,22 @@ class BulkEditView(GenericAPIView):
         except Exception as e:
             return HttpResponseBadRequest(str(e))
 
+
 class NewDocumentView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         presentDate = datetime.datetime.now()
-        unix_timestamp = datetime.datetime.timestamp(presentDate)*1000
+        unix_timestamp = datetime.datetime.timestamp(presentDate) * 1000
 
         document = Document()
         document.title = 'Новый документ'
-        document.checksum = hashlib.md5(str(unix_timestamp).encode('ASCII')).hexdigest()
+        document.checksum = hashlib.md5(
+            str(unix_timestamp).encode('ASCII')).hexdigest()
         document.save()
 
         return Response({"result": document.id})
 
 
 class PostDocumentView(GenericAPIView):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = PostDocumentSerializer
     parser_classes = (parsers.MultiPartParser,)
@@ -661,7 +686,8 @@ class PostDocumentView(GenericAPIView):
 
             os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
 
-            temp_file_path = Path(tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
+            temp_file_path = Path(
+                tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
                 pathvalidate.sanitize_filename(doc_name),
             )
 
@@ -671,7 +697,8 @@ class PostDocumentView(GenericAPIView):
 
             task_id = str(uuid.uuid4())
             async_task = consume_file.delay(
-                str(temp_file_path), None, None, None, None, None, None, None, request.data.get('id')
+                str(temp_file_path), None, None, None, None, None, None, None,
+                request.data.get('id')
             )
         else:
             serializer = self.get_serializer(data=request.data)
@@ -688,7 +715,8 @@ class PostDocumentView(GenericAPIView):
 
             os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
 
-            temp_file_path = Path(tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
+            temp_file_path = Path(
+                tempfile.mkdtemp(dir=settings.SCRATCH_DIR)) / Path(
                 pathvalidate.sanitize_filename(doc_name),
             )
 
@@ -712,7 +740,6 @@ class PostDocumentView(GenericAPIView):
 
 
 class SelectionDataView(GenericAPIView):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = DocumentListSerializer
     parser_classes = (parsers.MultiPartParser, parsers.JSONParser)
@@ -725,25 +752,29 @@ class SelectionDataView(GenericAPIView):
 
         correspondents = Correspondent.objects.annotate(
             document_count=Count(
-                Case(When(documents__id__in=ids, then=1), output_field=IntegerField()),
+                Case(When(documents__id__in=ids, then=1),
+                     output_field=IntegerField()),
             ),
         )
 
         tags = Tag.objects.annotate(
             document_count=Count(
-                Case(When(documents__id__in=ids, then=1), output_field=IntegerField()),
+                Case(When(documents__id__in=ids, then=1),
+                     output_field=IntegerField()),
             ),
         )
 
         types = DocumentType.objects.annotate(
             document_count=Count(
-                Case(When(documents__id__in=ids, then=1), output_field=IntegerField()),
+                Case(When(documents__id__in=ids, then=1),
+                     output_field=IntegerField()),
             ),
         )
 
         storage_paths = StoragePath.objects.annotate(
             document_count=Count(
-                Case(When(documents__id__in=ids, then=1), output_field=IntegerField()),
+                Case(When(documents__id__in=ids, then=1),
+                     output_field=IntegerField()),
             ),
         )
 
@@ -754,10 +785,12 @@ class SelectionDataView(GenericAPIView):
                     for t in correspondents
                 ],
                 "selected_tags": [
-                    {"id": t.id, "document_count": t.document_count} for t in tags
+                    {"id": t.id, "document_count": t.document_count} for t in
+                    tags
                 ],
                 "selected_document_types": [
-                    {"id": t.id, "document_count": t.document_count} for t in types
+                    {"id": t.id, "document_count": t.document_count} for t in
+                    types
                 ],
                 "selected_storage_paths": [
                     {"id": t.id, "document_count": t.document_count}
@@ -770,7 +803,6 @@ class SelectionDataView(GenericAPIView):
 
 
 class SearchAutoCompleteView(APIView):
-
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, format=None):
@@ -794,14 +826,14 @@ class SearchAutoCompleteView(APIView):
 
 
 class StatisticsView(APIView):
-
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, format=None):
         documents_total = Document.objects.all().count()
         if Tag.objects.filter(is_inbox_tag=True).exists():
             documents_inbox = (
-                Document.objects.filter(tags__is_inbox_tag=True).distinct().count()
+                Document.objects.filter(
+                    tags__is_inbox_tag=True).distinct().count()
             )
         else:
             documents_inbox = None
@@ -815,7 +847,6 @@ class StatisticsView(APIView):
 
 
 class BulkDownloadView(GenericAPIView):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = BulkDownloadSerializer
     parser_classes = (parsers.JSONParser,)
@@ -827,7 +858,8 @@ class BulkDownloadView(GenericAPIView):
         ids = serializer.validated_data.get("documents")
         compression = serializer.validated_data.get("compression")
         content = serializer.validated_data.get("content")
-        follow_filename_format = serializer.validated_data.get("follow_formatting")
+        follow_filename_format = serializer.validated_data.get(
+            "follow_formatting")
 
         os.makedirs(settings.SCRATCH_DIR, exist_ok=True)
         temp = tempfile.NamedTemporaryFile(
@@ -858,6 +890,7 @@ class BulkDownloadView(GenericAPIView):
 
             return response
 
+
 class UnifiedDownloadViewSet(UnifiedSearchViewSet):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -876,8 +909,8 @@ class UnifiedDownloadViewSet(UnifiedSearchViewSet):
         docs = super().list(request)
         # test_file = open('/home/poop/serve/test.pdf', 'rb')
         content = 'Дата;Номер;Корреспондент;Название;Имя файла'
-        for document in  docs.data['results']:
-            doc= Document.objects.get(id=int(document["id"]))
+        for document in docs.data['results']:
+            doc = Document.objects.get(id=int(document["id"]))
             # pdb.set_trace()
             # doc.source_path
             if pattern.match(doc.source_path):
@@ -887,7 +920,8 @@ class UnifiedDownloadViewSet(UnifiedSearchViewSet):
         merger.close()
         with open(temp.name, "rb") as f:
             response = HttpResponse(f, content_type="application/pdf")
-            response['Content-Disposition'] = 'attachment; filename="' + temp.name + '"'
+            response[
+                'Content-Disposition'] = 'attachment; filename="' + temp.name + '"'
 
             return response
 
@@ -895,11 +929,12 @@ class UnifiedDownloadViewSet(UnifiedSearchViewSet):
     # response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
     # return response
 
-        # response = HttpResponse(content=content)
-        # response['Content-Type'] = 'text/csv'
-        # response['Content-Disposition'] = 'attachment; filename="report.csv"'
+    # response = HttpResponse(content=content)
+    # response['Content-Type'] = 'text/csv'
+    # response['Content-Disposition'] = 'attachment; filename="report.csv"'
 
-        # return '';
+    # return '';
+
 
 class RemoteVersionView(GenericAPIView):
     def get(self, request, format=None):
@@ -921,7 +956,7 @@ class RemoteVersionView(GenericAPIView):
                 remote_version = remote_json["tag_name"]
                 # Basically PEP 616 but that only went in 3.9
                 if remote_version.startswith("ngx-"):
-                    remote_version = remote_version[len("ngx-") :]
+                    remote_version = remote_version[len("ngx-"):]
             except ValueError:
                 logger.debug("An error occurred parsing remote version json")
         except urllib.error.URLError:
@@ -945,7 +980,8 @@ class RemoteVersionView(GenericAPIView):
 class StoragePathViewSet(ModelViewSet):
     model = StoragePath
 
-    queryset = StoragePath.objects.annotate(document_count=Count("documents")).order_by(
+    queryset = StoragePath.objects.annotate(
+        document_count=Count("documents")).order_by(
         Lower("name"),
     )
 
@@ -954,11 +990,11 @@ class StoragePathViewSet(ModelViewSet):
     permission_classes = (IsAuthenticated,)
     filter_backends = (DjangoFilterBackend, OrderingFilter)
     filterset_class = StoragePathFilterSet
-    ordering_fields = ("name", "path", "matching_algorithm", "match", "document_count")
+    ordering_fields = (
+        "name", "path", "matching_algorithm", "match", "document_count")
 
 
 class UiSettingsView(GenericAPIView):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = UiSettingsViewSerializer
 
@@ -1004,7 +1040,6 @@ class UiSettingsView(GenericAPIView):
 
 
 class TasksViewSet(ReadOnlyModelViewSet):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = TasksViewSerializer
 
@@ -1023,7 +1058,6 @@ class TasksViewSet(ReadOnlyModelViewSet):
 
 
 class AcknowledgeTasksView(GenericAPIView):
-
     permission_classes = (IsAuthenticated,)
     serializer_class = AcknowledgeTasksViewSerializer
 
