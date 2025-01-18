@@ -20,12 +20,12 @@ from pypdf import PdfMerger
 import pathvalidate
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models import Case
+from django.db.models import Case, F, Value
 from django.db.models import Count
 from django.db.models import IntegerField
 from django.db.models import Max
 from django.db.models import When
-from django.db.models.functions import Lower
+from django.db.models.functions import Lower, Mod, Floor
 from django.http import Http404
 from django.http import HttpResponse
 from django.http import HttpResponseBadRequest
@@ -204,6 +204,24 @@ class DocumentTypeViewSet(ModelViewSet):
     ordering_fields = ("name", "matching_algorithm", "match", "document_count")
 
 
+# custom order Year>ASN
+class CustomOrderingFilter(OrderingFilter):
+    def remove_custom_field(self, ordering, field_name):
+        return [field for field in ordering if field not in (field_name, f'-{field_name}')]
+
+    def filter_queryset(self, request, queryset, view):
+        ordering = self.get_ordering(request, queryset, view)
+        if not ordering:
+            return queryset
+
+        queryset = queryset.annotate(
+            year_part=Mod(F('archive_serial_number'), Value(100)),
+            number_part=Floor(F('archive_serial_number') / Value(100)),
+        )
+
+        return queryset
+
+
 class DocumentViewSet(
     RetrieveModelMixin,
     UpdateModelMixin,
@@ -216,7 +234,7 @@ class DocumentViewSet(
     serializer_class = DocumentSerializer
     pagination_class = StandardPagination
     permission_classes = (IsAuthenticated,)
-    filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
+    filter_backends = [CustomOrderingFilter, DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = DocumentFilterSet
     search_fields = ("title", "correspondent__name", "content")
     ordering_fields = (
@@ -228,6 +246,8 @@ class DocumentViewSet(
         "modified",
         "added",
         "archive_serial_number",
+        "year_part",
+        "number_part",
     )
 
     def get_queryset(self):

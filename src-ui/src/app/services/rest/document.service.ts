@@ -15,6 +15,7 @@ import { queryParamsFromFilterRules } from '../../utils/query-params'
 import { StoragePathService } from './storage-path.service'
 
 export const DOCUMENT_SORT_FIELDS = [
+  { field: 'year_part;number_part', name: $localize`Year > ASN` },
   { field: 'archive_serial_number', name: $localize`ASN` },
   { field: 'correspondent__name', name: $localize`Correspondent` },
   { field: 'title', name: $localize`Title` },

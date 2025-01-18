@@ -23,7 +23,9 @@ export abstract class AbstractPaperlessService<T extends ObjectWithId> {
 
   private getOrderingQueryParam(sortField: string, sortReverse: boolean) {
     if (sortField) {
-      return (sortReverse ? '-' : '') + sortField
+      let fields = sortField.split(';')
+      fields = fields.map((field) => (sortReverse ? '-' : '') + field)
+      return fields.join(',')
     } else {
       return null
     }
